@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+celery
+redis
+python-dotenv
+google-generativeai
+youtube-comment-downloader
+youtube-transcript-api
+pandas
+numpy
+requests
+torch --index-url https://download.pytorch.org/whl/cpu
+transformers
+emoji
+wordcloud
+matplotlib
+scikit-learn

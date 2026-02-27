@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # 1. Database PostgreSQL
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=yt_analyst_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # LƯU Ý: Đảm bảo bạn đã tạo thư mục 'database' và file 'init.sql' nằm trong đó
+      # Nếu file init.sql nằm ngay cạnh docker-compose.yml thì sửa lại là: - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. Redis (Message Broker)
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  # 3. API Service (FastAPI)
+  backend:
+    build: ./backend
+    # Thêm DNS Google để sửa lỗi Network Error/NameResolutionError
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/app
+      # Dòng dưới chỉ cần nếu dùng BERT và muốn cache model trên máy thật.
+      # Nếu dùng TF-IDF thì comment lại để tránh lỗi đường dẫn trên Windows.
+      # - ~/.cache/huggingface:/root/.cache/huggingface
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/yt_analyst_db
+      - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # 4. Worker Service (Celery)
+  worker:
+    build: ./backend
+    # Thêm DNS Google để sửa lỗi tải thư viện/model
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    command: celery -A worker.celery_app worker -I worker.tasks --loglevel=info --concurrency=2
+    volumes:
+      - ./backend:/app
+      # Comment lại tương tự như backend
+      - ./hf_cache:/root/.cache/huggingface
+
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/yt_analyst_db
+      - REDIS_URL=redis://redis:6379/0
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - HF_HOME=/root/.cache/huggingface
+    depends_on:
+      - backend
+      - redis
+
+volumes:
+  postgres_data:
