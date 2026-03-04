@@ -101,7 +101,7 @@ export default function AuthForm({ onLogin, onBack, initialIsLogin = true }) {
             <div className="space-y-1">
               <div className="flex justify-between items-center ml-1">
                 <label className="text-sm font-semibold text-slate-700">Mật khẩu</label>
-                {isLogin && <a href="#" className="text-xs text-blue-600 hover:underline">Quên mật khẩu?</a>}
+                {isLogin && <a href="/auth/forgot-password" className="text-xs text-blue-600 hover:underline">Quên mật khẩu?</a>}
               </div>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -145,12 +145,14 @@ export default function AuthForm({ onLogin, onBack, initialIsLogin = true }) {
                 <span className="px-2 bg-white text-slate-500">Hoặc tiếp tục với</span>
               </div>
             </div>
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <button className="flex items-center justify-center px-4 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-                <Github className="w-5 h-5 mr-2" /> Github
-              </button>
-              <button className="flex items-center justify-center px-4 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-                <span className="font-bold text-red-500 mr-2">G</span> Google
+            <div className="mt-6">
+              <button className="w-full flex items-center justify-center px-4 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+                <img src="https://images.seeklogo.com/logo-png/27/1/google-logo-png_seeklogo-273191.png"
+                  className="w-4 h-4"
+                />
+                <span className="font-medium text-slate-1000 px-2">
+                  Google
+                </span>
               </button>
             </div>
           </div>

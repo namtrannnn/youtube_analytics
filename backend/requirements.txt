@@ -15,3 +15,4 @@ emoji
 wordcloud
 matplotlib
 scikit-learn
+deep-translator
