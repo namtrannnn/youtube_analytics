@@ -32,7 +32,7 @@ TU_DIEN_TEENCODE = {
     'bh': 'bây giờ', 'hqa': 'hôm qua', 'hnay': 'hôm nay',
     'ncl': 'nói chung là', 'vcl': 'vãi', 'vl': 'vãi', 'vler': 'vãi', 'klq': 'không liên quan',
     'gato': 'ghen tị', 'ato': 'ảo tưởng',
-    'tr': 'trời', 'trùi': 'trời', 'ui': 'ôi',         
+    'tr': 'trời', 'trùi': 'trời', 'ui': 'ôi', 'cít': 'cứt', 'cucws': 'cứt'       
 }
 
 # --- TỪ KHÓA ---
@@ -58,13 +58,14 @@ TU_KHOA_TIEU_CUC = [
     'ồn', 'đau', 'kém', 'xấu', 'kinh', 'phí', 'tiếc',
             
     # Slang tiêu cực/Chửi bới
-    'ngu', 'óc', 'trẩu', 'súc vật', 'chó', 'điên', 'khùng', 'biến', 'cút',
+    'ngu', 'óc', 'trẩu', 'súc vật', 'chó', 'điên', 'khùng', 'biến',
     'nhảm', 'xàm xí', 'xàm lờ', 'câu view', 'câu like', 'bú fame', 'lố', 'ô dề',
     'giả trân', 'flop', 'xu cà na', 'toxic', 'hãm',
             
     # Phản đối/Kỹ thuật
     'phản đối', 'tẩy chay', 'xóa', 'report', 'mờ', 'giật', 'quảng cáo', 'spam', 
-    'không hay', 'phí tiền', 'phí thời gian', 'đừng xem',
+    'không hay', 'phí tiền', 'phí thời gian', 'đừng xem', 'đổ lỗi', 'xúc phạm IQ người xem',
+    'não tàn', 'não', 'cũng chịu','làm ăn thế này', 'cẩu thả', 'nội dung thối não', 'chả khác gì coi thường'
 ]
 
 TU_LOAI_BO_TIENG_VIET = {
@@ -135,8 +136,8 @@ def phan_tich_cam_xuc_theo_luat(van_ban):
         if tu in van_ban_chu_thuong: diem_so -= 1
         
     danh_sach_emoji = [bieu_tuong['emoji'] for bieu_tuong in emoji.emoji_list(van_ban)]
-    bieu_tuong_tich_cuc = ['❤', '🥰', '😍', '👍', '😂', '🔥', '😘', '😊', '😁']
-    bieu_tuong_tieu_cuc = ['💔', '👎', '😭', '😢', '😡', '🤬', '😞']
+    bieu_tuong_tich_cuc = ['❤', '🥰', '😍', '👍', '😂', '🔥', '😘', '😊', '😁', '❤️', '💕', '😁', '👍', '🤣', '😆', '😋', '😎', '😚', '🤗', '🤑','🍀']
+    bieu_tuong_tieu_cuc = ['💔', '👎', '😭', '😢', '😡', '🤬', '😞', '😒', '🤦‍♀️','🤦‍♂️','😑','🙄','😔','😓','☹️','🙁','😟','😰','😱','💀','☠️','💩','🙏']
     
     for bieu_tuong in danh_sach_emoji:
         if bieu_tuong in bieu_tuong_tich_cuc: diem_so += 1

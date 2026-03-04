@@ -9,6 +9,7 @@ import InputForm from './components/InputForm';
 import AuthForm from './components/AuthForm';
 import DashboardWrapper from './components/DashboardWrapper'; 
 import HistoryPage from './components/HistoryPage';
+import ForgotPassword from './components/ForgotPassword';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -84,6 +85,7 @@ function App() {
               onBack={() => navigate('/')}
             />
           } />
+          <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           <Route path="/history" element={
             user ? <HistoryPage /> : <div className="text-center mt-20 font-bold">Vui lòng đăng nhập để xem lịch sử.</div>
           } />

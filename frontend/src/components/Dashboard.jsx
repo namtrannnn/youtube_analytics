@@ -28,44 +28,429 @@ const SENTIMENT_MAP = {
 };
 
 // ==========================================
-// MOCK DATA (GIỮ NGUYÊN DỮ LIỆU CỦA BẠN)
+// HELPER: PARSE TEXT THÔNG MINH
 // ==========================================
-const MOCK_DATA = { 
-  video_summary: {
-    type: "TIMELINE", 
-    category: "VLOG",
-    timeline: [
-      {
-        time: "00:00 ➝ 01:05",
-        points: [
-          "Nắng. Trong tới trưa thì chúng ta tới được nơi để ngắm ngọn núi cao nhất nước Đức. Rồi mình ngồi cạnh một cái hồ xanh ngọc ăn trưa, nguyên một cái nhà hàng view quá chừng đẹp luôn. Và sau đó chúng ta tới một cây cầu treo giữa hai cái Vách núi. Chỗ này thì Khoai đi thoải mái mọi người. Chỉ có xu á thì X sợ độ cao nên chỗ này hơi thử thách với Xu. Kế bên cây cầu là một tòa lâu đài bằng đá cổ được xây dựng cỡ cuối thế kỷ 13.",
-          "Tóm tắt tập trước. Ở trong tập trước thì chúng ta đã cùng nhau xuất phát từ biên giới phía bên nước Đức. Rồi mình chạy thẳng một mạch qua bên kia là nước Áo luôn. Thời tiết ngày hôm đó rất là đẹp, không có một xíu mây nào và trời thì Nắng. Trong tới trưa thì chúng ta tới được nơi để ngắm ngọn núi cao nhất nước Đức. Rồi mình ngồi cạnh một cái hồ xanh ngọc ăn trưa, nguyên một cái nhà hàng view quá chừng đẹp luôn."
-        ]
-      },
-      {
-        time: "01:03 ➝ 02:09",
-        points: [
-          "Ta cho mình đậu qua đêm và mình có thể xài được những cái dịch vụ của cái bãi đậu cắm trại trong kia. Nên là quyết định là tối nay mình sẽ ở lại nơi này. Và đây chính là khung cảnh sáng ngày hôm sau mọi người có thể nhìn thấy chỗ này là một cái tổ hợp rất nhiều cái bãi đậu xe nhà di động người ta tập trung lại đây.",
-          "Phòng tập người ta bắt đầu chuẩn bị mở cửa hoạt động rồi. Cái xe tối hôm qua bên cạnh người ta đi sớm luôn rồi mọi người. Và chúng ta chưa rời đi đâu. Chúng ta sẽ đi qua cái chỗ mà bẫy đậu của nhà di động bên kia để mà mình xả nước thải, tiếp nước sạch cũng làm gì quơ n trời. À đổ rác, rửa chén."
-        ]
-      },
-      {
-        time: "02:07 ➝ 03:10",
-        points: [
-          "Ở bên đây là nguyên cái bãi đậu nhiều lắm mọi người. Từng ô từng ô vậy đó. Và mọi người ở bên đây á người ta thuê ở trong đây nhiều người ta thuê 4 5 ngày, 5 6 ngày người ta đậu. Giờ thì chúng ta chỉ cần đi vòng ra phía sau cái Nhà kia. Cái bãi này là một bãi đậu xe nhỏ thôi nên là nó cũng không có quá nhiều dịch vụ đi kèm.",
-          "Cái bãi này hơi dở một xíu là người ta không có cái dòi nước nối dài nên là mình châm nước hơi cực. Thường thì mấy cái xe kia người ta chuẩn bị sẵn rồi mà xe này của khoai chủ xe người ta cũng không có sẵn luôn nên thôi mình chịu khó Mình châm bằng mấy cái bình nhỏ này cũng được."
-        ]
-      },
-      {
-        time: "04:04 ➝ 05:07",
-        points: [
-          "Xong. Bây giờ chúng ta đã thay đồ và dọn dẹp xử lý xong cái xe. Chạy thẳng cuối đường là có một cái siêu thị lớn. Mình sẽ đi cái siêu thị đó. Mọi người sẽ thấy ở đây á có nhiều nhà di động mà người ta đậu từ ngày nay qua ngày nọ.",
-          "Bãi đậu xe siêu thị lúc nào cũng sẽ có cái bảng nè. Không được cắm trại qua đêm mình đậu để mình đi siêu thị thì được. Siêu thị đâu? Sao thấy dán teo vậ?"
-        ]
+
+/** Strip markdown syntax: ###, **, *, __ */
+const stripMarkdown = (str) => {
+  return str
+    .replace(/^#{1,6}\s*/, '')        // ### heading
+    .replace(/\*\*(.*?)\*\*/g, '$1')  // **bold**
+    .replace(/__(.*?)__/g, '$1')      // __bold__
+    .replace(/\*(.*?)\*/g, '$1')      // *italic*
+    .replace(/`(.*?)`/g, '$1')        // `code`
+    .trim();
+};
+
+/** Lấy text thuần sau khi strip markdown */
+const cleanText = (str) => stripMarkdown(str);
+
+/** Kiểm tra emoji đặc biệt ở đầu (sau khi strip markdown) */
+const EMOJI_REGEX = /^\p{Extended_Pictographic}/u;
+const startsWithEmoji = (str) => EMOJI_REGEX.test(str.trim());
+
+/** Các icon "section header" nổi bật */
+const SECTION_ICONS = ['🥘','🔸','📋','📰','👤','🕵️','⚠️','⚖️','🎙️','🌟','🌍','🔹','✅','❌','⭐','💡','🏆','📌','🎯','🗓️','📊','🔔','💬','🧵','🎤','🗣️','🍳','🧂','🫕'];
+const isSectionIcon = (str) => SECTION_ICONS.some(ic => str.startsWith(ic));
+
+/**
+ * Parse text → array of typed blocks
+ * Nhận dạng: heading, location, qa-question, qa-answer, note, section-highlight, bullet, plain
+ */
+const parseContentLines = (text) => {
+  if (!text) return [];
+  const lines = text.split('\n');
+  const blocks = [];
+  let inAnswer = false; // context: đang trong vùng trả lời
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
+
+    // Dòng trống: giữ nguyên context nếu đang trong answer
+    if (!trimmed) {
+      blocks.push({ type: 'empty' });
+      // Không reset inAnswer ở đây — dòng trống giữa các câu vẫn thuộc answer
+      continue;
+    }
+
+    // Detect markdown heading → reset context
+    if (/^#{1,6}\s/.test(trimmed)) {
+      inAnswer = false;
+      blocks.push({ type: 'heading', content: cleanText(trimmed) });
+      continue;
+    }
+
+    // Detect location → reset context
+    if (/^(📍|Đang ở:|Địa điểm:|Location:)/i.test(trimmed)) {
+      inAnswer = false;
+      blocks.push({ type: 'location', content: cleanText(trimmed) });
+      continue;
+    }
+
+    const clean = cleanText(trimmed);
+
+    // QA Question: reset context, bắt đầu câu hỏi mới
+    if (clean.startsWith('❓') || /^\*\*❓/.test(trimmed) || trimmed.includes('**❓')) {
+      inAnswer = false;
+      const q = clean.replace(/^❓\s*/, '').trim();
+      blocks.push({ type: 'qa-question', content: q });
+      continue;
+    }
+
+    // QA Answer bắt đầu bằng ↳ → tạo block mới với lines[]
+    if (clean.startsWith('↳')) {
+      inAnswer = true;
+      blocks.push({ type: 'qa-answer', lines: [clean.slice(1).trim()] });
+      continue;
+    }
+
+    // Nếu đang trong context answer → append vào block answer cuối
+    if (inAnswer) {
+      const isNewBlock =
+        isSectionIcon(clean) ||
+        /^(•\s*)?(Lưu ý|Note|Chú ý)\s*:/i.test(clean);
+
+      if (!isNewBlock) {
+        const last = blocks[blocks.length - 1];
+        if (last?.type === 'qa-answer') {
+          last.lines.push(clean);
+        } else {
+          blocks.push({ type: 'qa-answer', lines: [clean] });
+        }
+        continue;
       }
-    ],
-    content: ""
+      inAnswer = false;
+    }
+
+    // Note / Lưu ý
+    if (/^(•\s*)?(Lưu ý|Note|Chú ý)\s*:/i.test(clean)) {
+      blocks.push({ type: 'note', content: clean.replace(/^•\s*/, '') });
+      continue;
+    }
+
+    // Section icon
+    if (isSectionIcon(clean)) {
+      const isHeader = clean.length <= 80 && (clean.endsWith(':') || /^[🥘🔸📋📰👤🕵️⚠️⚖️🎙️🌟🌍🔹✅❌⭐💡🏆📌🎯🗓️📊🔔💬🧵🎤🗣️]/.test(clean));
+      blocks.push({ type: isHeader ? 'section-header' : 'section-highlight', content: clean });
+      continue;
+    }
+
+    // Bullet
+    if (/^[•\-]\s/.test(clean)) {
+      blocks.push({ type: 'bullet', content: clean.replace(/^[•\-]\s/, '') });
+      continue;
+    }
+
+    blocks.push({ type: 'plain', content: clean });
   }
+
+  return blocks;
+};
+
+// ==========================================
+// COMPONENT: RENDER NỘI DUNG TEXT THÔNG MINH
+// ==========================================
+const SmartTextRenderer = ({ content }) => {
+  const blocks = parseContentLines(content);
+
+  return (
+    <div className="space-y-1.5">
+      {blocks.map((block, idx) => {
+        if (block.type === 'empty') return <div key={idx} className="h-2" />;
+
+        // === HEADING (từ ### markdown) ===
+        if (block.type === 'heading') {
+          return (
+            <div key={idx} className="mt-6 mb-3 first:mt-0">
+              <div className="flex items-center gap-3 bg-gradient-to-r from-slate-800 to-slate-700 text-white rounded-2xl px-5 py-3.5 shadow-md">
+                <span className="text-base font-extrabold tracking-wide leading-snug">{block.content}</span>
+              </div>
+            </div>
+          );
+        }
+
+        // === LOCATION ===
+        if (block.type === 'location') {
+          const locationText = block.content.replace(/^(📍\s*|Đang ở:\s*)/i, '').trim();
+          const prefix = block.content.includes('📍') ? '📍' : '🗺️';
+          return (
+            <div key={idx} className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl px-4 py-2.5 mt-3 mb-2 shadow-sm w-fit">
+              <span className="text-lg">{prefix}</span>
+              <div>
+                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest block">Địa điểm</span>
+                <span className="text-slate-800 font-bold text-sm">{locationText}</span>
+              </div>
+            </div>
+          );
+        }
+
+        // === SECTION HEADER (emoji + label ngắn) ===
+        if (block.type === 'section-header') {
+          return (
+            <div key={idx} className="mt-5 mb-2 first:mt-0">
+              <span className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-800 font-bold text-sm px-4 py-2 rounded-xl shadow-sm">
+                {block.content}
+              </span>
+            </div>
+          );
+        }
+
+        // === SECTION HIGHLIGHT (emoji + nội dung dài) ===
+        if (block.type === 'section-highlight') {
+          // Tách emoji đầu tiên ra
+          const emojiMatch = block.content.match(/^(\p{Extended_Pictographic}+\s*)/u);
+          const icon = emojiMatch ? emojiMatch[1].trim() : '';
+          const text = icon ? block.content.slice(emojiMatch[0].length).trim() : block.content;
+          return (
+            <div key={idx} className="flex items-start gap-3 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border border-blue-200 rounded-xl px-4 py-3.5 shadow-sm mt-2">
+              {icon && <span className="text-xl flex-shrink-0 mt-0.5">{icon}</span>}
+              <p className="text-slate-800 text-sm leading-relaxed font-medium">{text}</p>
+            </div>
+          );
+        }
+
+        // === QA QUESTION ===
+        if (block.type === 'qa-question') {
+          return (
+            <div key={idx} className="flex items-start gap-3 bg-amber-50 border-l-4 border-amber-400 rounded-r-xl px-4 py-3.5 mt-5 shadow-sm">
+              <div className="w-7 h-7 rounded-full bg-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                <span className="text-white font-black text-xs">Q</span>
+              </div>
+              <p className="text-slate-800 text-sm leading-relaxed font-semibold">{block.content}</p>
+            </div>
+          );
+        }
+
+        // === QA ANSWER (gom thành 1 vùng) ===
+        if (block.type === 'qa-answer') {
+          const lines = block.lines || (block.content ? [block.content] : []);
+          return (
+            <div key={idx} className="flex items-start gap-3 bg-emerald-50 border-l-4 border-emerald-400 rounded-r-xl px-4 py-4 shadow-sm">
+              <div className="w-7 h-7 rounded-full bg-emerald-400 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                <span className="text-white font-black text-xs">A</span>
+              </div>
+              <div className="space-y-1.5">
+                {lines.filter(l => l.trim()).map((line, li) => (
+                  <p key={li} className="text-slate-700 text-sm leading-relaxed italic">{line}</p>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        // === NOTE / LƯU Ý ===
+        if (block.type === 'note') {
+          return (
+            <div key={idx} className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3 shadow-sm mt-2">
+              <span className="text-orange-500 text-lg flex-shrink-0 mt-0.5">⚠️</span>
+              <p className="text-orange-800 text-sm leading-relaxed font-medium">{block.content.replace(/^(Lưu ý|Note|Chú ý)\s*:\s*/i, (m) => `${m}`)}</p>
+            </div>
+          );
+        }
+
+        // === BULLET ===
+        if (block.type === 'bullet') {
+          return (
+            <div key={idx} className="flex items-start gap-2.5 px-3 py-1">
+              <ChevronRight className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+              <p className="text-slate-700 text-sm leading-relaxed">{block.content}</p>
+            </div>
+          );
+        }
+
+        // === PLAIN TEXT ===
+        return (
+          <p key={idx} className="text-slate-600 text-sm leading-relaxed px-1">
+            {block.content}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
+// ==========================================
+// COMPONENT: TIMELINE VIEW
+// ==========================================
+const TimelineView = ({ timeline }) => {
+  if (!timeline || timeline.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+        <Clock className="w-12 h-12 mb-3 opacity-20" />
+        <p className="italic text-sm">Không có dữ liệu timeline.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative border-l-2 border-blue-100 ml-4 pl-8 space-y-10">
+      {timeline.map((item, idx) => (
+        <div key={idx} className="relative">
+          <div className="absolute -left-[41px] top-0 w-5 h-5 bg-white border-4 border-blue-500 rounded-full shadow-sm" />
+          <div className="flex items-center gap-3 mb-3">
+            <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg shadow-sm font-mono">
+              {item.time}
+            </span>
+            {item.label && (
+              <h4 className="font-bold text-slate-800 uppercase tracking-wide text-sm">{item.label}</h4>
+            )}
+          </div>
+          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-3">
+            {item?.points?.map((point, pIdx) => (
+              <div key={pIdx} className="flex items-start gap-3">
+                <ChevronRight className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0" />
+                <SmartTextRenderer content={point} />
+              </div>
+            ))}
+            {item?.content && <SmartTextRenderer content={item.content} />}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ==========================================
+// COMPONENT: TALKSHOW / INTERVIEW VIEW
+// ==========================================
+const TalkshowView = ({ content, guests }) => {
+  if (!content) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+        <MessageCircle className="w-12 h-12 mb-3 opacity-20" />
+        <p className="italic text-sm">Không có dữ liệu talkshow / phỏng vấn.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {guests && guests.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4 p-4 bg-purple-50 rounded-xl border border-purple-100">
+          <span className="text-xs font-bold text-purple-700 uppercase tracking-wide w-full mb-1">Khách mời</span>
+          {guests.map((g, i) => (
+            <span key={i} className="px-3 py-1 bg-white border border-purple-200 text-purple-700 rounded-full text-xs font-medium shadow-sm">
+              {g}
+            </span>
+          ))}
+        </div>
+      )}
+      <SmartTextRenderer content={content} />
+    </div>
+  );
+};
+
+// ==========================================
+// COMPONENT: NEWS / BULLET SUMMARY VIEW
+// ==========================================
+const NewsView = ({ items, content }) => {
+  if (!items?.length && !content) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+        <FileText className="w-12 h-12 mb-3 opacity-20" />
+        <p className="italic text-sm">Không có dữ liệu tin tức / tổng hợp.</p>
+      </div>
+    );
+  }
+  const raw = content || (items || []).join('\n');
+  return <SmartTextRenderer content={raw} />;
+};
+
+// ==========================================
+// COMPONENT: REPORT / PHÓNG SỰ VIEW
+// ==========================================
+const ReportView = ({ sections, content }) => {
+  if (!sections?.length && !content) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+        <FileText className="w-12 h-12 mb-3 opacity-20" />
+        <p className="italic text-sm">Không có dữ liệu phóng sự / báo cáo.</p>
+      </div>
+    );
+  }
+  if (content) return <SmartTextRenderer content={content} />;
+  return (
+    <div className="space-y-6">
+      {sections.map((section, idx) => (
+        <div key={idx} className="rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+          {section.title && (
+            <div className="px-5 py-3 bg-slate-800 flex items-center gap-2">
+              <span className="text-white font-bold text-sm">{section.title}</span>
+            </div>
+          )}
+          <div className="p-5 bg-white">
+            <SmartTextRenderer content={(section.items || []).join('\n') + (section.content ? '\n' + section.content : '')} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ==========================================
+// COMPONENT CHÍNH: VIDEO SUMMARY RENDERER
+// ==========================================
+const VideoSummaryPanel = ({ videoSummary }) => {
+  if (!videoSummary || (!videoSummary.type && !videoSummary.content && !videoSummary.timeline)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+        <Film className="w-14 h-14 mb-3 opacity-20" />
+        <p className="italic text-sm">Chưa có dữ liệu tóm tắt nội dung.</p>
+      </div>
+    );
+  }
+
+  const type = videoSummary.type || 'TEXT';
+
+  const typeConfig = {
+    TIMELINE: { icon: <Clock className="w-6 h-6" />, label: 'Trục thời gian (Timeline)', bg: 'bg-blue-50', text: 'text-blue-600' },
+    TALKSHOW: { icon: <MessageCircle className="w-6 h-6" />, label: 'Tóm tắt Talkshow / Phỏng vấn', bg: 'bg-purple-50', text: 'text-purple-600' },
+    NEWS: { icon: <FileText className="w-6 h-6" />, label: 'Tổng hợp Tin tức', bg: 'bg-green-50', text: 'text-green-600' },
+    REPORT: { icon: <Target className="w-6 h-6" />, label: 'Phóng sự / Báo cáo chuyên sâu', bg: 'bg-red-50', text: 'text-red-600' },
+    TEXT: { icon: <AlignLeft className="w-6 h-6" />, label: 'Tóm tắt nội dung', bg: 'bg-slate-50', text: 'text-slate-600' },
+  };
+
+  const cfg = typeConfig[type] || typeConfig.TEXT;
+
+  return (
+    <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-8">
+        <div className={`p-3 rounded-xl ${cfg.bg} ${cfg.text}`}>{cfg.icon}</div>
+        <div>
+          <h3 className="font-bold text-xl text-slate-800">Bản tóm tắt</h3>
+          <p className="text-sm text-slate-500">{cfg.label}{videoSummary.category ? ` · ${videoSummary.category}` : ''}</p>
+        </div>
+      </div>
+
+      {/* Content by type */}
+      {type === 'TIMELINE' && (
+        <TimelineView timeline={videoSummary.timeline} />
+      )}
+
+      {type === 'TALKSHOW' && (
+        <TalkshowView content={videoSummary.content} guests={videoSummary.guests} />
+      )}
+
+      {type === 'NEWS' && (
+        <NewsView items={videoSummary.items} content={videoSummary.content} />
+      )}
+
+      {type === 'REPORT' && (
+        <ReportView sections={videoSummary.sections} content={videoSummary.content} />
+      )}
+
+      {type === 'TEXT' && (
+        <div className="prose prose-slate max-w-none">
+          {videoSummary.content
+            ? <SmartTextRenderer content={videoSummary.content} />
+            : <p className="text-slate-400 italic text-center py-6">Không có dữ liệu văn bản.</p>
+          }
+        </div>
+      )}
+    </div>
+  );
 };
 
 // --- COMPONENT: MODAL BÌNH LUẬN ---
@@ -123,8 +508,8 @@ export default function Dashboard({ data, taskId }) {
   const [filterValue, setFilterValue] = useState(null);
   const [timeRange, setTimeRange] = useState('7');
 
-  // --- TRÍCH XUẤT DỮ LIỆU AN TOÀN ---
-  const video_url = data?.video_url || MOCK_DATA.video_url || '';
+  // --- TRÍCH XUẤT DỮ LIỆU AN TOÀN (KHÔNG CÓ MOCK DATA) ---
+  const video_url = data?.video_url || '';
   const sentimentData = data?.sentiment_chart?.length > 0 ? data.sentiment_chart : [];
   const emojiData = data?.emoji_stats?.length > 0 ? data.emoji_stats : [];
   const rawWordCloudData = data?.word_cloud?.length > 0 ? data.word_cloud : [];
@@ -133,11 +518,7 @@ export default function Dashboard({ data, taskId }) {
   const scatterData = data?.scatter_clusters?.length > 0 ? data.scatter_clusters : [];
   const allComments = data?.all_comments?.length > 0 ? data.all_comments : [];
   const timeSeriesData = data?.time_series?.length > 0 ? data.time_series : [];
-  
-  // LOGIC ƯU TIÊN: Lấy data từ API (nếu có timeline/content), nếu không thì fallback về MOCK_DATA
-  const videoSummary = (data?.video_summary?.timeline?.length > 0 || data?.video_summary?.content) 
-    ? data.video_summary 
-    : MOCK_DATA.video_summary;
+  const videoSummary = data?.video_summary || null;
 
   // Lọc Timeline cho biểu đồ bình luận
   const filteredTimeSeries = useMemo(() => {
@@ -184,7 +565,6 @@ export default function Dashboard({ data, taskId }) {
     const funEmojis = ['😂', '🤣', '😆', '😁', 'hihi', 'haha'];
     const funCount = (emojiData || []).reduce((acc, curr) => funEmojis.some(e => curr.emoji?.includes(e)) ? acc + curr.count : acc, 0);
     const scale = (val, max) => Math.min(100, Math.round((val / max) * 100)) || 20;
-
     return [
       { subject: 'Tích cực', A: scale(positiveCount, totalComments), fullMark: 100 },
       { subject: 'Tiêu cực', A: scale(negativeCount, totalComments), fullMark: 100 },
@@ -203,6 +583,14 @@ export default function Dashboard({ data, taskId }) {
     return { items: shuffledItems, maxVal, minVal };
   }, [rawWordCloudData]);
 
+  // Empty state component
+  const EmptyState = ({ icon: Icon, message }) => (
+    <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 py-8">
+      <Icon className="w-10 h-10 opacity-20" />
+      <p className="text-sm italic">{message}</p>
+    </div>
+  );
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="max-w-7xl mx-auto space-y-6 pb-20 pt-8">
       
@@ -217,7 +605,10 @@ export default function Dashboard({ data, taskId }) {
               Báo Cáo Phân Tích Toàn Diện
             </h2>
             <p className="text-slate-500 text-sm mt-1 flex items-center gap-2 flex-wrap">
-               Nguồn: <a href={video_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-medium truncate max-w-[200px]">{video_url}</a>
+               {video_url
+                 ? <><span>Nguồn:</span><a href={video_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-medium truncate max-w-[200px]">{video_url}</a></>
+                 : <span className="italic text-slate-400">Chưa có nguồn video</span>
+               }
                {videoSummary?.category && <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-xs font-bold uppercase">{videoSummary.category}</span>}
             </p>
           </div>
@@ -245,65 +636,12 @@ export default function Dashboard({ data, taskId }) {
       {/* === MAIN LAYOUT === */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* --- CỘT TRÁI (9 CỘT) --- */}
+        {/* --- CỘT TRÁI (8 CỘT) --- */}
         <div className="lg:col-span-8 space-y-6">
           
           {/* TAB 1: TÓM TẮT NỘI DUNG VIDEO */}
           {activeTab === 'summary' && (
-             <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center gap-3 mb-8">
-                   <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                      {videoSummary.type === 'TIMELINE' ? <Clock className="w-6 h-6" /> : <AlignLeft className="w-6 h-6" />}
-                   </div>
-                   <div>
-                      <h3 className="font-bold text-xl text-slate-800">Bản tóm tắt</h3>
-                      <p className="text-sm text-slate-500">Phân tích dựa trên {videoSummary.category === 'NEWS' ? 'thông tin tổng hợp' : 'trục thời gian (Timeline)'}</p>
-                   </div>
-                </div>
-
-                {videoSummary.type === 'TIMELINE' && videoSummary.timeline && videoSummary.timeline.length > 0 ? (
-                    <div className="relative border-l-2 border-blue-100 ml-4 pl-8 space-y-10">
-                        {videoSummary.timeline.map((item, idx) => (
-                           <div key={idx} className="relative">
-                              <div className="absolute -left-[41px] top-0 w-5 h-5 bg-white border-4 border-blue-500 rounded-full shadow-sm"></div>
-                              <div className="flex items-center gap-3 mb-3">
-                                 <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg shadow-sm font-mono">
-                                    {item.time}
-                                 </span>
-                                 <h4 className="font-bold text-slate-800 uppercase tracking-wide text-sm">
-                                    Phần {idx + 1}
-                                 </h4>
-                              </div>
-                              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-3">
-                                 {item?.points?.map((point, pIdx) => (
-                                    <div key={pIdx} className="flex items-start gap-3">
-                                       <ChevronRight className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0" />
-                                       <p className="text-slate-700 text-sm leading-relaxed">{point}</p>
-                                    </div>
-                                 ))}
-                              </div>
-                           </div>
-                        ))}
-                    </div>
-                ) : videoSummary.type === 'TIMELINE' ? (
-                   <p className="text-slate-500 italic text-center py-6">Không trích xuất được Timeline từ video này.</p>
-                ) : null}
-
-                {videoSummary.type === 'TEXT' && (
-                    <div className="prose prose-slate max-w-none">
-                       {videoSummary.content ? (
-                           <ReactMarkdown>{videoSummary.content}</ReactMarkdown>
-                       ) : (
-                           <p className="text-slate-500 italic text-center py-6">Không có dữ liệu văn bản.</p>
-                       )}
-                    </div>
-                )}
-                
-                {/* Fallback nếu API lỗi không sinh ra loại summary nào */}
-                {!videoSummary.type && (
-                    <p className="text-slate-500 italic text-center py-6">Chưa có dữ liệu tóm tắt nội dung.</p>
-                )}
-             </div>
+            <VideoSummaryPanel videoSummary={videoSummary} />
           )}
 
           {/* TAB 2: PHÂN TÍCH BÌNH LUẬN */}
@@ -313,15 +651,15 @@ export default function Dashboard({ data, taskId }) {
                 {/* KPI CARDS */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { label: 'Tổng Bình Luận', val: totalComments.toLocaleString(), icon: MessageSquare, color: 'text-blue-600', bg: 'bg-blue-50' },
-                    { label: 'Điểm Cảm Xúc', val: `${positivePercent - negativePercent}`, icon: Target, color: 'text-violet-600', bg: 'bg-violet-50', note: 'Chỉ số ròng' },
-                    { label: 'Độ Tích Cực', val: `${positivePercent}%`, icon: ThumbsUp, color: 'text-green-600', bg: 'bg-green-50' },
-                    { label: 'Tiêu Cực / Toxic', val: `${negativePercent}%`, icon: Zap, color: 'text-red-600', bg: 'bg-red-50' },
+                    { label: 'Tổng Bình Luận', val: totalComments > 0 ? totalComments.toLocaleString() : '—', icon: MessageSquare, color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { label: 'Điểm Cảm Xúc', val: totalComments > 0 ? `${positivePercent - negativePercent}` : '—', icon: Target, color: 'text-violet-600', bg: 'bg-violet-50', note: 'Chỉ số ròng' },
+                    { label: 'Độ Tích Cực', val: totalComments > 0 ? `${positivePercent}%` : '—', icon: ThumbsUp, color: 'text-green-600', bg: 'bg-green-50' },
+                    { label: 'Tiêu Cực / Toxic', val: totalComments > 0 ? `${negativePercent}%` : '—', icon: Zap, color: 'text-red-600', bg: 'bg-red-50' },
                   ].map((stat, i) => (
                     <div key={i} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-start justify-between hover:shadow-md transition-shadow">
                       <div>
                         <p className="text-slate-500 text-[11px] font-bold uppercase tracking-wider mb-1">{stat.label}</p>
-                        <p className="text-3xl font-bold text-slate-800">{stat.val}</p>
+                        <p className={`text-3xl font-bold ${stat.val === '—' ? 'text-slate-300' : 'text-slate-800'}`}>{stat.val}</p>
                         {stat.note && <p className="text-[10px] text-slate-400 mt-1">{stat.note}</p>}
                       </div>
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.bg}`}>
@@ -352,44 +690,34 @@ export default function Dashboard({ data, taskId }) {
                     </div>
                   </div>
                   <div className="h-72 w-full">
-                      {filteredTimeSeries.length > 0 ? (
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={filteredTimeSeries}>
-                            <defs>
-                              <linearGradient id="colorComments" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.2}/>
-                                <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0}/>
-                              </linearGradient>
-                            </defs>
-                            <XAxis 
-                              dataKey="date" 
-                              stroke="#94a3b8" 
-                              fontSize={11} 
-                              tickLine={false} 
-                              axisLine={false} 
-                              dy={10} 
-                              tickFormatter={(str) => {
-                                const dateObj = new Date(str);
-                                if (isNaN(dateObj.getTime())) return str;
-                                const hours = dateObj.getHours();
-                                const minutes = dateObj.getMinutes();
-                                if (hours === 0 && minutes === 0) {
-                                  return `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
-                                }
-                                return `${hours}:${minutes < 10 ? '0' : ''}${minutes}`;
-                              }}
-                            />
-                            <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
-                            <Area type="monotone" dataKey="comments" stroke={COLORS.primary} strokeWidth={3} fillOpacity={1} fill="url(#colorComments)" />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-slate-400 text-sm italic">
-                           Không có dữ liệu thời gian cho khoảng thời gian này.
-                        </div>
-                      )}
+                    {filteredTimeSeries.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={filteredTimeSeries}>
+                          <defs>
+                            <linearGradient id="colorComments" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.2}/>
+                              <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} dy={10}
+                            tickFormatter={(str) => {
+                              const dateObj = new Date(str);
+                              if (isNaN(dateObj.getTime())) return str;
+                              const hours = dateObj.getHours();
+                              const minutes = dateObj.getMinutes();
+                              if (hours === 0 && minutes === 0) return `${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
+                              return `${hours}:${minutes < 10 ? '0' : ''}${minutes}`;
+                            }}
+                          />
+                          <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                          <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                          <Area type="monotone" dataKey="comments" stroke={COLORS.primary} strokeWidth={3} fillOpacity={1} fill="url(#colorComments)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <EmptyState icon={TrendingUp} message="Không có dữ liệu thời gian cho khoảng thời gian này." />
+                    )}
                   </div>
                 </div>
 
@@ -401,25 +729,25 @@ export default function Dashboard({ data, taskId }) {
                       </div>
                       <h3 className="font-bold text-lg text-slate-800 mb-2 text-center">Tỷ lệ Cảm Xúc</h3>
                       <div className="h-64 relative w-full">
-                          {sentimentData.length > 0 ? (
-                            <>
-                              <ResponsiveContainer width="100%" height="100%">
-                                  <PieChart>
-                                      <Pie data={sentimentData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" onClick={handleSentimentClick}>
-                                          {sentimentData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} stroke="none" className="hover:opacity-80 transition-opacity cursor-pointer"/>))}
-                                      </Pie>
-                                      <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
-                                      <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{fontSize: '12px', paddingTop: '10px'}}/>
-                                  </PieChart>
-                              </ResponsiveContainer>
-                              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-                                  <span className="text-3xl font-extrabold text-slate-800">{positivePercent}%</span>
-                                  <span className="text-xs text-slate-400 font-bold uppercase">Tích cực</span>
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex items-center justify-center h-full text-slate-400 text-sm italic">Không có dữ liệu cảm xúc.</div>
-                          )}
+                        {sentimentData.length > 0 ? (
+                          <>
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie data={sentimentData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" onClick={handleSentimentClick}>
+                                  {sentimentData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.color} stroke="none" className="hover:opacity-80 transition-opacity cursor-pointer"/>))}
+                                </Pie>
+                                <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                                <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{fontSize: '12px', paddingTop: '10px'}}/>
+                              </PieChart>
+                            </ResponsiveContainer>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
+                              <span className="text-3xl font-extrabold text-slate-800">{positivePercent}%</span>
+                              <span className="text-xs text-slate-400 font-bold uppercase">Tích cực</span>
+                            </div>
+                          </>
+                        ) : (
+                          <EmptyState icon={Target} message="Không có dữ liệu cảm xúc." />
+                        )}
                       </div>
                    </div>
 
@@ -439,7 +767,7 @@ export default function Dashboard({ data, taskId }) {
                              </RadarChart>
                            </ResponsiveContainer>
                          ) : (
-                           <div className="flex items-center justify-center h-full text-slate-400 text-sm italic">Không đủ dữ liệu phân tích sắc thái.</div>
+                           <EmptyState icon={Activity} message="Không đủ dữ liệu phân tích sắc thái." />
                          )}
                        </div>
                    </div>
@@ -447,28 +775,28 @@ export default function Dashboard({ data, taskId }) {
 
                 {/* 3. SCATTER PLOT */}
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                      <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
-                        <Target className="w-5 h-5 text-indigo-500"/> Bản đồ Phân cụm Chủ đề
-                      </h3>
-                      <div className="h-72 w-full bg-slate-50/50 rounded-2xl border border-slate-100">
-                        {scatterData.length > 0 ? (
-                          <ResponsiveContainer width="100%" height="100%">
-                            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                              <XAxis type="number" dataKey="x" name="PCA 1" hide />
-                              <YAxis type="number" dataKey="y" name="PCA 2" hide />
-                              <ZAxis type="number" dataKey="z" range={[60, 400]} />
-                              <RechartsTooltip content={<CustomScatterTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-                              <Legend wrapperStyle={{fontSize: '12px'}}/>
-                              <Scatter name="Nhóm 0" data={scatterData.filter(c => c.cluster === 'Nhóm 0')} fill="#3b82f6" shape="circle" />
-                              <Scatter name="Nhóm 1" data={scatterData.filter(c => c.cluster === 'Nhóm 1')} fill="#ef4444" shape="triangle" />
-                              <Scatter name="Nhóm 2" data={scatterData.filter(c => c.cluster === 'Nhóm 2')} fill="#10b981" shape="square" />
-                            </ScatterChart>
-                          </ResponsiveContainer>
-                        ) : (
-                          <div className="flex items-center justify-center h-full text-slate-400 text-sm italic">Không có dữ liệu phân cụm chủ đề.</div>
-                        )}
-                      </div>
+                  <h3 className="font-bold text-lg text-slate-800 mb-4 flex items-center gap-2">
+                    <Target className="w-5 h-5 text-indigo-500"/> Bản đồ Phân cụm Chủ đề
+                  </h3>
+                  <div className="h-72 w-full bg-slate-50/50 rounded-2xl border border-slate-100">
+                    {scatterData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis type="number" dataKey="x" name="PCA 1" hide />
+                          <YAxis type="number" dataKey="y" name="PCA 2" hide />
+                          <ZAxis type="number" dataKey="z" range={[60, 400]} />
+                          <RechartsTooltip content={<CustomScatterTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+                          <Legend wrapperStyle={{fontSize: '12px'}}/>
+                          <Scatter name="Nhóm 0" data={scatterData.filter(c => c.cluster === 'Nhóm 0')} fill="#3b82f6" shape="circle" />
+                          <Scatter name="Nhóm 1" data={scatterData.filter(c => c.cluster === 'Nhóm 1')} fill="#ef4444" shape="triangle" />
+                          <Scatter name="Nhóm 2" data={scatterData.filter(c => c.cluster === 'Nhóm 2')} fill="#10b981" shape="square" />
+                        </ScatterChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <EmptyState icon={Target} message="Không có dữ liệu phân cụm chủ đề." />
+                    )}
+                  </div>
                 </div>
 
                 {/* 4. WORD CLOUD */}
@@ -482,13 +810,11 @@ export default function Dashboard({ data, taskId }) {
                   <div className="min-h-[350px] bg-slate-50/50 rounded-2xl border border-slate-100 relative overflow-hidden flex flex-wrap content-center justify-center items-center gap-x-6 gap-y-3 p-6">
                      <div className="absolute top-0 right-0 w-40 h-40 bg-blue-200 rounded-full blur-3xl opacity-30 -z-10"></div>
                      <div className="absolute bottom-0 left-0 w-40 h-40 bg-purple-200 rounded-full blur-3xl opacity-30 -z-10"></div>
-
                      {processedWordCloud.items.length > 0 ? processedWordCloud.items.map((word, idx) => {
                        const ratio = (word.value - processedWordCloud.minVal) / (processedWordCloud.maxVal - processedWordCloud.minVal || 1);
                        const fontSize = 14 + (ratio * 45); 
                        const opacity = 0.6 + (ratio * 0.4);
                        const fontWeight = ratio > 0.5 ? 800 : (ratio > 0.3 ? 600 : 400);
-                       
                        return (
                          <motion.span 
                            key={idx}
@@ -499,13 +825,12 @@ export default function Dashboard({ data, taskId }) {
                            {word.text}
                          </motion.span>
                        )
-                     }) : <p className="text-slate-400 italic text-sm">Không trích xuất được từ khóa nổi bật nào.</p>}
+                     }) : <EmptyState icon={Cloud} message="Không trích xuất được từ khóa nổi bật nào." />}
                   </div>
                 </div>
 
                 {/* 5. ROW: TOP USERS & EMOJIS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   {/* TOP USERS LIST */}
                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative group">
                        <div className="absolute top-6 right-6 text-[10px] text-slate-400 font-medium bg-slate-50 px-2 py-1 rounded-full border border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
                            🖱️ Chọn người dùng để xem lịch sử
@@ -533,11 +858,15 @@ export default function Dashboard({ data, taskId }) {
                                  {user.count}
                                </span>
                             </div>
-                          )) : <div className="flex items-center justify-center h-32 text-slate-400 text-sm italic">Chưa có dữ liệu người dùng nổi bật.</div>}
+                          )) : (
+                            <div className="flex flex-col items-center justify-center h-32 text-slate-400 gap-2">
+                              <Users className="w-8 h-8 opacity-20" />
+                              <p className="text-sm italic">Chưa có dữ liệu người dùng nổi bật.</p>
+                            </div>
+                          )}
                        </div>
                     </div>
 
-                    {/* TOP EMOJIS */}
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative group">
                        <div className="absolute top-6 right-6 text-[10px] text-slate-400 font-medium bg-slate-50 px-2 py-1 rounded-full border border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
                            🖱️ Nhấn Emoji để lọc
@@ -554,12 +883,11 @@ export default function Dashboard({ data, taskId }) {
                                <RechartsTooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px' }} />
                                <Bar dataKey="count" fill="#fbbf24" radius={[0, 6, 6, 0]} barSize={24} background={{ fill: '#f8fafc', radius: [0,6,6,0] }} onClick={handleEmojiClick} className="cursor-pointer">
                                   {emojiData.map((entry, index) => (<Cell key={`cell-${index}`} fill="#fbbf24" className="hover:opacity-80 transition-opacity cursor-pointer"/>))}
-                                  <label position="right" fill="#64748b" fontSize={12} fontWeight={600} />
                                </Bar>
                              </BarChart>
                            </ResponsiveContainer>
                          ) : (
-                           <div className="flex items-center justify-center h-full text-slate-400 text-sm italic">Không tìm thấy Emoji nào trong các bình luận.</div>
+                           <EmptyState icon={Smile} message="Không tìm thấy Emoji nào trong các bình luận." />
                          )}
                        </div>
                     </div>
@@ -569,14 +897,12 @@ export default function Dashboard({ data, taskId }) {
 
         </div>
 
-        {/* --- CỘT PHẢI (CHỈ CHATBOT - LUÔN HIỂN THỊ) --- */}
+        {/* --- CỘT PHẢI (CHATBOT - LUÔN HIỂN THỊ) --- */}
         <div className="lg:col-span-4">
           <div className="sticky top-6 h-[calc(100vh-40px)] flex flex-col">
-             
              <div className="flex-1 min-h-0 bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
                 <ChatWindow taskId={taskId} />
              </div>
-             
              <div className="mt-4 p-5 bg-blue-50 text-blue-800 rounded-2xl text-sm border border-blue-100 shadow-sm">
                 <strong className="flex items-center gap-2">💡 Gợi ý câu hỏi:</strong>
                 <ul className="list-disc ml-4 mt-3 space-y-2 text-slate-600">
@@ -587,7 +913,6 @@ export default function Dashboard({ data, taskId }) {
              </div>
           </div>
         </div>
-
       </div>
     </motion.div>
   );
