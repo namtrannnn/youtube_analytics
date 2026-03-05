@@ -16,3 +16,8 @@ wordcloud
 matplotlib
 scikit-learn
 deep-translator
+sqlalchemy
+psycopg2-binary
+passlib[bcrypt]
+python-jose[cryptography]
+pydantic[email]

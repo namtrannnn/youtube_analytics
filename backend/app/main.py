@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from celery.result import AsyncResult
 from typing import Optional
 import os
+from app.routers import auth_router
 
 # --- THAY ĐỔI Ở ĐÂY: Import celery_app thay vì import tasks ---
 # Điều này giúp Backend không phải load model AI nặng nề
@@ -25,6 +26,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router.router)
 
 class YeuCauPhanTich(BaseModel):
     duong_dan: str
