@@ -1,100 +1,98 @@
 import React, { useState } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom'; 
-import axios from 'axios';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 
-// Import Components
+// --- IMPORT COMPONENTS ---
 import Header from './components/Header';
 import Footer from './components/Footer';
 import InputForm from './components/InputForm';
 import AuthForm from './components/AuthForm';
-import DashboardWrapper from './components/DashboardWrapper'; 
-import HistoryPage from './components/HistoryPage';
 import ForgotPassword from './components/ForgotPassword';
+import HistoryPage from './components/HistoryPage';
+import DashboardWrapper from './components/DashboardWrapper';
 
-const API_BASE_URL = 'http://localhost:8000';
+// --- IMPORT API ---
+import { api } from './api';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
+  
+  // 1. Quản lý State User (Lấy từ localStorage để F5 không bị mất đăng nhập)
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user_info');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
-  // --- HÀM XỬ LÝ AUTH (LOGIN/LOGOUT) ---
-  const handleLoginSuccess = (userData) => {
-    setUser(userData);
-    navigate('/'); 
+  // 2. Hàm xử lý khi đăng nhập thành công
+  const handleLoginSuccess = (userInfo) => {
+    setUser(userInfo);
+    localStorage.setItem('user_info', JSON.stringify(userInfo));
   };
 
+  // 3. Hàm xử lý Đăng xuất
   const handleLogout = () => {
     setUser(null);
-    navigate('/');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user_info');
+    navigate('/auth/login');
   };
 
-  // --- HÀM XỬ LÝ PHÂN TÍCH (GỌI API) ---
-  const startAnalysis = async (url, count) => {
+  // 4. HÀM XỬ LÝ PHÂN TÍCH VIDEO (Đã sửa lỗi Initialization)
+  const startAnalysis = async (url, commentCount) => {
     try {
-      // ĐÃ SỬA: Gửi đúng key tiếng Việt theo chuẩn Pydantic của Backend
-      const res = await axios.post(`${API_BASE_URL}/api/analyze`, { 
-        duong_dan: url, 
-        so_luong: count 
-      });
-      
-      // ĐÃ SỬA: Lấy ma_tac_vu thay vì task_id để chuyển trang
-      if (res.data.ma_tac_vu) {
-        navigate(`/report/${res.data.ma_tac_vu}`);
-      }
+      // Gọi hàm startAnalysis từ file api.js
+      const taskId = await api.startAnalysis(url, commentCount);
+      // Có taskId rồi thì chuyển hướng sang trang Report
+      navigate(`/report/${taskId}`);
     } catch (error) {
-      alert("Lỗi kết nối API: " + error.message);
+      console.error("Lỗi khi phân tích:", error);
+      alert("Có lỗi xảy ra khi bắt đầu phân tích video. Vui lòng thử lại!");
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 selection:bg-blue-100">
-      {/* Background Effect */}
-      <div className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100 via-slate-50 to-white opacity-60 pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans relative overflow-hidden">
       
-      {/* Header luôn hiển thị */}
+      {/* HEADER TÍCH HỢP AUTH & LỊCH SỬ */}
       <Header 
         user={user} 
         onLogout={handleLogout} 
-        onLoginClick={() => navigate('/auth/login')}    
-        onRegisterClick={() => navigate('/auth/register')} 
-      />
-
-      <main className="flex-grow container mx-auto px-4 pt-24 pb-12 relative z-10 flex flex-col justify-center">
+        // Gửi kèm state isLogin = true khi bấm nút Đăng nhập
+        onLoginClick={() => navigate('/auth/login', { state: { isLogin: true } })}
         
-        {/* --- KHU VỰC ĐỊNH TUYẾN (ROUTES) --- */}
+        // Gửi kèm state isLogin = false khi bấm nút Đăng ký
+        onRegisterClick={() => navigate('/auth/login', { state: { isLogin: false } })} 
+      />
+      
+      {/* MAIN CONTENT VỚI ROUTING */}
+      <main className="flex-grow container mx-auto px-4 pt-24 pb-12 relative z-10 flex flex-col justify-center">
         <Routes>
+          {/* Trang chủ: Nhập link */}
+          <Route path="/" element={<InputForm onSubmit={startAnalysis} />} />
           
-          {/* 1. Trang chủ: Nhập Link */}
-          <Route path="/" element={
-            <InputForm onSubmit={startAnalysis} isLoading={false} />
-          } />
-
-          {/* 2. Trang Đăng nhập/Đăng ký */}
-          <Route path="/auth/login" element={
-            <AuthForm 
-              onLogin={handleLoginSuccess} 
-              initialIsLogin={true} 
-              onBack={() => navigate('/')}
-            />
-          } />
+          {/* Auth: Đăng nhập / Đăng ký */}
+          <Route path="/auth/login" element={<AuthForm onLogin={handleLoginSuccess} />} />
           
-          <Route path="/auth/register" element={
-            <AuthForm 
-              onLogin={handleLoginSuccess} 
-              initialIsLogin={false} 
-              onBack={() => navigate('/')}
-            />
-          } />
+          {/* Auth: Quên mật khẩu */}
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+          
+          {/* Lịch sử phân tích (Yêu cầu đăng nhập) */}
           <Route path="/history" element={
-            user ? <HistoryPage /> : <div className="text-center mt-20 font-bold">Vui lòng đăng nhập để xem lịch sử.</div>
+            user ? <HistoryPage /> : (
+              <div className="text-center mt-20">
+                <h2 className="text-2xl font-bold text-slate-800 mb-4">Bạn chưa đăng nhập</h2>
+                <button 
+                  onClick={() => navigate('/auth/login')}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700"
+                >
+                  Đăng nhập để xem lịch sử
+                </button>
+              </div>
+            )
           } />
 
-          {/* 3. Trang Báo cáo (Dashboard) */}
+          {/* Trang Báo cáo Dashboard */}
           <Route path="/report/:taskId" element={<DashboardWrapper />} />
-
         </Routes>
-
       </main>
       
       <Footer />
