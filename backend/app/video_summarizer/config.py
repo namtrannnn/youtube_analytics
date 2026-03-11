@@ -28,21 +28,6 @@ STOP_WORDS = {
     }
 }
 
-# Blacklist cho địa danh (để lọc rác)
-LOCATION_BLACKLIST_WORDS = {
-    'Khoai', 'Wow', 'Yes', 'Thank', 'Put', 'Yeah', 'Don', 'Ok',
-    'Nhà', 'Phòng', 'Đây', 'Đó', 'Kia', 'Chỗ', 'Bên', 'Trong', 'Ngoài',
-    'Cái', 'Con', 'Chiếc', 'Lúc', 'Khi', 'Một', 'Hai', 'Ba',
-    'Bạn', 'Mình', 'Anh', 'Chị', 'Em', 'Cô', 'Chú', 'Bác',
-    'Vách', 'Góc', 'Cửa', 'Tại', 'Đến', 'Về', 'Xong', 'Rồi',
-    'Giá', 'Ngày', 'Sáng', 'Trưa', 'Chiều', 'Tối', 'Đêm',
-    'Giải', 'Khung', 'Khoảng', 'Càng', 'Anber', 'Alber'
-}
-
-LOCATION_BLACKLIST_CONTEXT = {
-    'giống', 'như', 'nhớ', 'tưởng', 'ngỡ', 'tựa', 'cảm giác', 'gợi'
-}
-
 # Từ điển nguyên liệu nấu ăn chuẩn
 COOKING_INGREDIENTS = {
     # Thịt & Hải sản
@@ -120,61 +105,6 @@ VIDEO_CATEGORIES = {
         'keywords': ['entertainment', 'giải trí', 'show'],
         'chunk_size': 100,
         'similarity_threshold': 0.35
-    }
-}
-
-# Template tóm tắt theo loại video
-SUMMARY_TEMPLATES = {
-    'cooking': {
-        'vi': {
-            'ingredients': "🥘 Nguyên liệu: {items}",
-            'steps': "• {action}",
-            'note': "• Lưu ý: {note}"
-        },
-        'en': {
-            'ingredients': "🥘 Ingredients: {items}",
-            'steps': "• {action}",
-            'note': "• Note: {note}"
-        }
-    },
-    
-    'vlog': {
-        'vi': {
-            'location': "📍 Địa điểm: {place}",
-            'activity': "🎬 Hoạt động: {action}",
-            'highlight': "⭐ Nổi bật: {point}"
-        },
-        'en': {
-            'location': "📍 Location: {place}",
-            'activity': "🎬 Activity: {action}",
-            'highlight': "⭐ Highlight: {point}"
-        }
-    },
-    
-    'talkshow': {
-        'vi': {
-            'topic': "💬 Chủ đề: {topic}",
-            'point': "• {point}",
-            'quote': '"{quote}"'
-        },
-        'en': {
-            'topic': "💬 Topic: {topic}",
-            'point': "• {point}",
-            'quote': '"{quote}"'
-        }
-    },
-    
-    'news': {
-        'vi': {
-            'headline': "📰 {headline}",
-            'detail': "• {detail}",
-            'source': "Nguồn: {source}"
-        },
-        'en': {
-            'headline': "📰 {headline}",
-            'detail': "• {detail}",
-            'source': "Source: {source}"
-        }
     }
 }
 

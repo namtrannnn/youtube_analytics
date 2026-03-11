@@ -3,7 +3,7 @@ Module tóm tắt chuyên biệt cho video nấu ăn - Phiên bản Fix lỗi nh
 """
 import re
 # Import COOKING_INGREDIENTS từ config
-from .config import PATTERNS, SUMMARY_TEMPLATES, STOP_WORDS, COOKING_INGREDIENTS
+from .config import PATTERNS, COOKING_INGREDIENTS
 from .utils import clean_sentence, extract_numbers_with_units
 
 class CookingSummarizer:
@@ -12,8 +12,6 @@ class CookingSummarizer:
     def __init__(self, lang='vi'):
         self.lang = lang
         self.patterns = PATTERNS['cooking'].get(lang, PATTERNS['cooking']['vi'])
-        self.templates = SUMMARY_TEMPLATES['cooking'].get(lang, SUMMARY_TEMPLATES['cooking']['vi'])
-        self.stop_words = STOP_WORDS.get(lang, STOP_WORDS['vi'])
         # Dùng set để tra cứu nhanh hơn
         self.ingredient_db = COOKING_INGREDIENTS
     
@@ -122,17 +120,17 @@ class CookingSummarizer:
             )
             
             if matched_items:
-                summary.append(self.templates['ingredients'].format(items=matched_items))
+                summary.append(f"[NGUYÊN LIỆU] Nguyên liệu: {matched_items}")
         
         # 2. Hiển thị các bước thực hiện
         if info['actions']:
             for action in info['actions']:
-                summary.append(self.templates['steps'].format(action=action))
+                summary.append(f"{action}")
         
         # 3. Hiển thị lưu ý
         if info['notes']:
             for note in info['notes']:
-                summary.append(self.templates['note'].format(note=note))
+                summary.append(f"Lưu ý: {note}")
         
         # Fallback: Nếu không trích xuất được gì
         if not summary and info.get('_sentences'):

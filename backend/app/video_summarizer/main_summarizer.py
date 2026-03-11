@@ -141,17 +141,28 @@ class SmartVideoSummarizer:
             duration = sentences[-1]['end'] if sentences else 0
             
             title_str = ''
+            description_str = ''
+
             try:
-                import urllib.request, json
-                oembed_url = f'https://www.youtube.com/oembed?url=https://youtu.be/{vid_id}&format=json'
-                with urllib.request.urlopen(oembed_url, timeout=5) as resp:
-                    title_str = json.loads(resp.read()).get('title', '').lower()
-            except:
-                pass
+                import requests
+                # Lấy HTML page của video
+                headers = {'User-Agent': 'Mozilla/5.0'}
+                resp = requests.get(f'https://www.youtube.com/watch?v={vid_id}', headers=headers, timeout=5)
+                html = resp.text
+                
+                # Parse title
+                import re
+                title_match = re.search(r'"title":"([^"]+)"', html)
+                desc_match = re.search(r'"shortDescription":"([^"]+)"', html)
+                
+                title_str = title_match.group(1).lower() if title_match else ''
+                description_str = desc_match.group(1).lower() if desc_match else ''
+            except Exception as e:
+                print(f"[WARNING] Không lấy được metadata: {e}")
 
             video_info = {
                 'title': title_str, 
-                'description': '', 
+                'description': description_str, 
                 'category_id': '',
                 'transcript_sample': ' '.join([s['text'] for s in sentences[:20]])
             }

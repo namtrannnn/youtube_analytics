@@ -2,7 +2,7 @@
 Module tóm tắt vlog - Dùng geo_database để nhận diện địa điểm chính xác
 """
 import re
-from .config import PATTERNS, LOCATION_BLACKLIST_CONTEXT, LOCATION_BLACKLIST_WORDS
+from .config import PATTERNS
 from .geo_database import find_locations_in_text
 
 
