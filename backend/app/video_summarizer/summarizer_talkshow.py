@@ -208,11 +208,14 @@ class TalkshowSummarizer:
             r'\bsao\??$', 
             r'\bhả\??$',
             r'\bđúng không\b.*?\??$', 
-            r'\bphải không\b.*?\??$'
+            r'\bphải không\b.*?\??$',
+            r'\bliệu\s+.+\s+có\b',
+            r'\bcó\s+tự\s+tin\b',
+            r'\bbao\s+nhiêu\s+phần\s+trăm\b'
         ]
 
         if text.endswith('?'):
-            if len(text.split()) < 20:
+            if len(text.split()) < 30:
                 return True
 
         for p in PATS:
@@ -315,10 +318,10 @@ class TalkshowSummarizer:
         # =====================================================================
         # RENDER OUTPUT KẾT QUẢ 
         # =====================================================================
-        result = ["### 🎙️ TÓM TẮT TALKSHOW / PHỎNG VẤN\n"]
+        result = ["[TÓM TẮT] TÓM TẮT TALKSHOW / PHỎNG VẤN\n"]
 
         if intro:
-            result.append("**🌟 GIỚI THIỆU KHÁCH MỜI:**")
+            result.append("**[GIỚI THIỆU] GIỚI THIỆU KHÁCH MỜI:**")
             clean_intro = [re.sub(r'^(Và|Nhưng|Thì|Vậy)\s+', '', s, flags=re.IGNORECASE) for s in intro[:3]]
             result.append(f"{' '.join(clean_intro)}\n")
 
@@ -354,14 +357,14 @@ class TalkshowSummarizer:
                 clean_q = clean_q[0].upper() + clean_q[1:]
                 clean_q = re.sub(r'\s+\?', '?', clean_q)
                 if not clean_q.endswith('?'): clean_q += '?'
-                result.append(f"**❓ {clean_q}**")
+                result.append(f"**[HỎI] {clean_q}**")
             else:
                 continue 
             
             first_ans = pair['a'][0]
             first_ans = re.sub(r'^(Dạ|Vâng|Thì|Ờ|À|Ừ|Thật sự thì)\s*,?\s*', '', first_ans, flags=re.IGNORECASE)
             if first_ans: 
-                result.append(f"↳ {first_ans[0].upper() + first_ans[1:]}")
+                result.append(f"[ĐÁP] {first_ans[0].upper() + first_ans[1:]}")
 
             for extra in pair['a'][1:6]:
                 if len(extra.split()) >= 10:
@@ -373,6 +376,6 @@ class TalkshowSummarizer:
             result.append("") 
 
         if len(result) == 1:
-            result.append("🔹 *(Không trích xuất được đoạn đối đáp cụ thể nào từ video này)*")
+            result.append("> *(Không trích xuất được đoạn đối đáp cụ thể nào từ video này)*")
 
         return "\n".join(result)

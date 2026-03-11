@@ -170,6 +170,52 @@ def phan_tich_chuoi_thoi_gian(df):
     except Exception as e:
         print(f"Lỗi Chuỗi Thời Gian: {e}")
         return []
+    
+def an_danh_ten_rieng_cho_bert_an_toan(van_ban):
+    """
+    Tìm và thay thế các từ viết hoa chữ cái đầu (tên riêng) thành 'ai_đó'
+    giúp BERT không bị thành kiến (bias) với các tên cụ thể.
+    """
+    if not isinstance(van_ban, str): 
+        return ""
+    
+    # Regex tìm các từ viết hoa chữ cái đầu tiếng Việt
+    pattern_hoa = r'\b[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪỬỮỰỲỴÝỶỸ][a-zàáâãèéêìíòóôõùúăđĩũơưăạảấầẩẫậắằẳẵặẹẻẽềềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]*\b'
+    
+    # Thay tên riêng bằng token 'ai_đó'
+    cau_da_che = re.sub(pattern_hoa, 'ai_đó', van_ban)
+    
+    # Gom các chữ 'ai_đó' đứng cạnh nhau thành 1 chữ duy nhất cho tự nhiên
+    cau_hoan_thien = re.sub(r'(ai_đó\s*)+', 'ai_đó ', cau_da_che)
+    
+    return cau_hoan_thien.strip()
+
+def hieu_chinh_cam_xuc_theo_luat(cau_goc, nhan_may_doan):
+    """
+    Lớp khiên cuối cùng: Nếu máy đoán sai, dùng luật kính ngữ để bẻ lái về Positive.
+    """
+    if not isinstance(cau_goc, str): 
+        return nhan_may_doan
+    
+    # Chuyển câu về chữ thường và tách thành các từ
+    cac_tu = cau_goc.lower().split()
+    if not cac_tu:
+        return nhan_may_doan
+        
+    # Danh sách các kính ngữ mạnh
+    kinh_ngu = ['dạ', 'vâng', 'thưa', 'xin mời']
+    
+    # 1. Ưu tiên cao nhất: Câu kết thúc bằng chữ "ạ"
+    if cac_tu[-1] == 'ạ':
+        return "Positive"
+        
+    # 2. Hoặc nếu chứa các từ kính ngữ mạnh ở bất kỳ đâu trong câu
+    for tu in kinh_ngu:
+        if tu in cac_tu:
+            return "Positive"
+            
+    # Nếu không có dấu hiệu đặc biệt, tôn trọng kết quả gốc của AI
+    return nhan_may_doan
 
 # ===================================================================================
 # CELERY TASK CHÍNH
@@ -204,7 +250,20 @@ def analyze_video_task(self, url_youtube, so_luong_binh_luan):
     
     df = lay_binh_luan(url_youtube, gioi_han=so_luong_binh_luan)
     if df.empty:
-        return {"error": "Không tìm thấy bình luận hoặc lỗi tải."}
+        # SỬA LỖI: Nếu không có bình luận, vẫn trả về tóm tắt video và các mảng rỗng
+         return {
+            "video_url": url_youtube,
+            "total_comments": 0,
+            "video_summary": video_summary_data, # Vẫn giữ lại bản tóm tắt
+            "time_series": [],
+            "sentiment_chart": [],
+            "emoji_stats": [],
+            "word_cloud": [],
+             "all_comments": [],
+            "top_users": [],
+             "scatter_clusters": [],
+            "warning": "Không tìm thấy bình luận nào, nhưng tóm tắt video đã được tạo thành công." # Gửi kèm cảnh báo cho frontend
+        }
     
     self.update_state(state='PROGRESS', meta={'progress': 50, 'status': f'Đã tải {len(df)} bình luận. Đang phân tích...'})
 
@@ -212,19 +271,33 @@ def analyze_video_task(self, url_youtube, so_luong_binh_luan):
     # BƯỚC 3: VECTOR HÓA VÀ ML CUSTOM
     # ---------------------------------------------------------
     try:
-        X = lay_vector_bert(df['da_lam_sach'].tolist())
+        # CHÚ Ý: Đưa 'ban_goc' (còn nguyên chữ "ạ", "dạ") qua hàm che tên viết hoa
+        # Tuyệt đối không đưa 'da_lam_sach' vào BERT!
+        danh_sach_cho_bert = [an_danh_ten_rieng_cho_bert_an_toan(txt) for txt in df['ban_goc'].tolist()]
+        
+        X = lay_vector_bert(danh_sach_cho_bert)
     except Exception as e:
         return {"error": f"Lỗi xử lý ngôn ngữ tự nhiên: {str(e)}"}
     
     self.update_state(state='PROGRESS', meta={'progress': 70, 'status': 'Đang chạy thuật toán phân cụm & đánh giá cảm xúc...'})
 
+    # Chạy K-Means
     kmeans = KMeansTuyChinh(so_cum=3, so_vong_lap_toi_da=50)
     df['cum'] = kmeans.huan_luyen_va_du_doan(X).tolist()
 
+    # Chạy Logistic Regression
     mo_hinh_lr = HoiQuyLogisticTuyChinh(toc_do_hoc=0.1, so_vong_lap=3000)
     y_gia = np.array([phan_tich_cam_xuc_theo_luat(txt) for txt in df['ban_goc']])
+    
     mo_hinh_lr.huan_luyen(X, y_gia)
     df['cam_xuc_du_doan'] = mo_hinh_lr.du_doan(X).tolist()
+
+    # Lớp khiên cuối cùng: IF-ELSE vớt những câu BERT lỡ tay đánh giá sai
+    # Vẫn dùng 'ban_goc' để thuật toán không bị mù từ ngữ khí
+    df['cam_xuc_du_doan'] = df.apply(
+        lambda row: hieu_chinh_cam_xuc_theo_luat(row['ban_goc'], row['cam_xuc_du_doan']), 
+        axis=1
+    )
 
     self.update_state(state='PROGRESS', meta={'progress': 90, 'status': 'Đang tổng hợp báo cáo...'})
 

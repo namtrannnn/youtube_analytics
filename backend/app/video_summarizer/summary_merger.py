@@ -56,7 +56,6 @@ class SummaryMerger:
         
         Logic:
         - So sánh số từ chung
-        - Xem có cùng icon không (📍, 🎬, ⭐)
         """
         if not points1 or not points2:
             return 0.0
@@ -64,11 +63,6 @@ class SummaryMerger:
         # Chuyển tất cả points thành text
         text1 = ' '.join(points1).lower()
         text2 = ' '.join(points2).lower()
-        
-        # Loại bỏ icon để so sánh thuần text
-        for icon in ['📍', '🎬', '⭐', '💡', '🥘', '⚖️', '💬', '📰', '•']:
-            text1 = text1.replace(icon, '')
-            text2 = text2.replace(icon, '')
         
         # Tách từ
         words1 = set(text1.split())

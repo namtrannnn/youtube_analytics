@@ -17,6 +17,17 @@ class VideoClassifier:
         category_id = video_info.get('category_id', '')
         transcript_sample = video_info.get('transcript_sample', '').lower()
 
+         # =====================================================================
+        # LUẬT THÉP: Nếu tiêu đề đã ghi rõ thì chốt luôn!
+        # =====================================================================
+        if 'talkshow' in title or 'talk show' in title:
+            return 'talkshow'
+        
+        if 'review' in title or 'reviewphim' in description or 'review phim' in description: 
+            return 'entertainment'
+        
+        if 'vlog' in title or 'du lịch' in title: return 'vlog'
+
         combined_text = f"{title} {description} {transcript_sample}"
 
         # 1. Không hỗ trợ

@@ -6,33 +6,54 @@ TU_DIEN_TEENCODE = {
     # Phủ định
     'ko': 'không', 'k': 'không', 'kh': 'không', 'khong': 'không', 'kg': 'không', 
     'hong': 'không', 'hok': 'không', 'khum': 'không', 'k0': 'không', 'hem': 'không',
+    'hông': 'không', 'kô': 'không', 'nô': 'không', 'chư': 'chưa', 'chửa': 'chưa',
             
     # Đồng ý/Khẳng định
-    'dc': 'được', 'đc': 'được', 'dk': 'được', 'dx': 'được', 
-    'oki': 'ok', 'oke': 'ok', 'uk': 'ừ', 'ukm': 'ừ', 'uh': 'ừ',
+    'dc': 'được', 'đc': 'được', 'dk': 'được', 'dx': 'được', 'đx': 'được',
+    'oki': 'ok', 'oke': 'ok', 'uk': 'ừ', 'ukm': 'ừ', 'uh': 'ừ', 'okela': 'ok',
+    'dạk': 'dạ', 'vângg': 'vâng', 'đúm': 'đúng', 'chuẩn': 'đúng', 'đg': 'đúng',
             
-    # Đại từ nhân xưng
-    'mik': 'mình', 'mk': 'mình', 'mjnh': 'mình', 'm': 'mình', 't': 'tôi',
-    'b': 'bạn', 'bn': 'bạn', 'mem': 'thành viên', 'ad': 'quản trị viên',
-    'mn': 'mọi người', 'ngta': 'người ta', 'ae': 'anh em', 'ce': 'chị em',
-    'vk': 'vợ', 'ck': 'chồng', 'cr': 'crush',
+    # Đại từ nhân xưng & Các mối quan hệ
+    'mik': 'mình', 'mk': 'mình', 'mjnh': 'mình', 'm': 'mình', 't': 'tôi', 'toy': 'tôi', 'toi': 'tôi',
+    'b': 'bạn', 'bn': 'bạn', 'pạn': 'bạn', 'mem': 'thành viên', 'ad': 'quản trị viên',
+    'mn': 'mọi người', 'm.n': 'mọi người', 'ngta': 'người ta', 'ngt': 'người ta',
+    'ae': 'anh em', 'ce': 'chị em', 'a': 'anh', 'e': 'em', 'cj': 'chị',
+    'vk': 'vợ', 'ck': 'chồng', 'cr': 'crush', 'ny': 'người yêu', 'ex': 'người yêu cũ',
+    'bff': 'bạn thân', 'gđ': 'gia đình', 'hs': 'học sinh', 'sv': 'sinh viên', 'gv': 'giáo viên',
             
-    # Hành động/Tính từ/Trạng từ
-    'bt': 'bình thường', 'nt': 'nhắn tin', 'ib': 'nhắn tin', 'rep': 'trả lời',
-    'iu': 'yêu', 'yeu': 'yêu', 'thik': 'thích',
-    'j': 'gì', 'cj': 'cái gì', 'gì z': 'gì vậy', 'z': 'vậy', 'zay': 'vậy','zậy': 'vậy',
-    'tks': 'cảm ơn', 'thanks': 'cảm ơn', 'tk': 'cảm ơn', 'cam on': 'cảm ơn',
+    # Hành động/Tính từ/Trạng từ (Giao tiếp cơ bản)
+    'bt': 'bình thường', 'bth': 'bình thường', 'bthg': 'bình thường',
+    'nt': 'nhắn tin', 'ib': 'nhắn tin', 'rep': 'trả lời', 'tl': 'trả lời', 'cmt': 'bình luận',
+    'iu': 'yêu', 'yeu': 'yêu', 'thik': 'thích', 'chê': 'không thích',
+    'j': 'gì', 'zì': 'gì', 'gì z': 'gì vậy', 'z': 'vậy', 'zay': 'vậy', 'zậy': 'vậy', 'v': 'vậy',
+    'tks': 'cảm ơn', 'thanks': 'cảm ơn', 'tk': 'cảm ơn', 'cam on': 'cảm ơn', 'cảm mơn': 'cảm ơn',
+    'xl': 'xin lỗi', 'srr': 'xin lỗi', 'sori': 'xin lỗi','sr': 'xin lỗi',
     'ng': 'người', 'n': 'người',
-    'ms': 'mới', 'lm': 'làm', 'bik': 'biết', 'bit': 'biết',
+    'ms': 'mới', 'lm': 'làm', 'bik': 'biết', 'bit': 'biết', 'hỉu': 'hiểu',
     'h': 'giờ', 'p': 'phút',
-    'cx': 'cũng', 'lun': 'luôn',
-    'ak': 'à', 'ah': 'à', 'ha': 'hả',
-    'vs': 'với', 'wa': 'quá', 'wá': 'quá', 'e': 'em', 
-    'r': 'rồi', 'roi': 'rồi', 'rùi': 'rồi',
-    'bh': 'bây giờ', 'hqa': 'hôm qua', 'hnay': 'hôm nay',
-    'ncl': 'nói chung là', 'vcl': 'vãi', 'vl': 'vãi', 'vler': 'vãi', 'klq': 'không liên quan',
-    'gato': 'ghen tị', 'ato': 'ảo tưởng',
-    'tr': 'trời', 'trùi': 'trời', 'ui': 'ôi', 'cít': 'cứt', 'cucws': 'cứt'       
+    'cx': 'cũng', 'lun': 'luôn', 'luân': 'luôn',
+    'ak': 'à', 'ah': 'à', 'ha': 'hả', 'há': 'hả',
+    'vs': 'với', 'wa': 'quá', 'wá': 'quá', 
+    'r': 'rồi', 'roi': 'rồi', 'rùi': 'rồi', 'gòi': 'rồi', 'gòy': 'rồi',
+    'bh': 'bây giờ', 'hqa': 'hôm qua', 'hnay': 'hôm nay', 'mai': 'ngày mai',
+    
+    # Từ nối / Câu hỏi thường gặp
+    'nma': 'nhưng mà', 'nvay': 'như vậy', 'ntn': 'như thế nào', 'tnao': 'thế nào',
+    'đk': 'đúng không', 'ns': 'nói', 'nhiu': 'nhiều', 'nhìu': 'nhiều',
+    'bnhiu': 'bao nhiêu', 'kb': 'không biết', 'thui': 'thôi', 'thoai': 'thôi',
+    'lquan': 'liên quan', 'klq': 'không liên quan', 'ncl': 'nói chung là', 
+    'nx': 'nữa', 'mún': 'muốn', 'nc': 'nước',
+
+    # Thể hiện cảm xúc / Cảm thán / Miêu tả
+    'vcl': 'vãi', 'vl': 'vãi', 'vler': 'vãi', 'vđ': 'vãi',
+    'gato': 'ghen tị', 'ato': 'ảo tưởng', 'chảnh': 'kiêu ngạo',
+    'tr': 'trời', 'trùi': 'trời', 'chời': 'trời', 'ui': 'ôi', 'qtqd': 'quá trời quá đất',
+    'cít': 'cứt', 'cucws': 'cứt', 'hnhu': 'hình như',
+    'dth': 'dễ thương', 'dzth': 'dễ thương', 'xjh': 'xinh', 'dz': 'đẹp trai', 'đz': 'đẹp trai',
+    'bùn': 'buồn', 'zui': 'vui', 'xu': 'xui xẻo', 'xucana': 'xui xẻo',
+    
+    # Thuật ngữ MXH
+    'stt': 'trạng thái', 'avt': 'ảnh đại diện', 'in4': 'thông tin', 'link': 'đường dẫn'
 }
 
 # --- TỪ KHÓA ---

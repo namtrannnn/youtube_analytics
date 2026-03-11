@@ -164,7 +164,7 @@ class NewsSummarizer:
         # =========================================================================
         # FORMAT KẾT QUẢ ĐẦU RA
         # =========================================================================
-        result = ["### 🌍 TỔNG HỢP CÁC THÔNG TIN ĐÁNG CHÚ Ý\n"]
+        result = ["[TỔNG HỢP] TỔNG HỢP CÁC THÔNG TIN ĐÁNG CHÚ Ý\n"]
         valid_paras = []
         
         for block in deduped_blocks:
@@ -181,10 +181,10 @@ class NewsSummarizer:
                     valid_paras.append(" ".join(clean_sents))
                 
         if not valid_paras:
-            result.append("🔹 *(Không trích xuất được thông tin cụ thể từ video này)*")
+            result.append("> *(Không trích xuất được thông tin cụ thể từ video này)*")
         else:
             for item in valid_paras: 
-                result.append(f"🔸 {item}\n")
+                result.append(f"{item}\n")
                 
         return "\n".join(result)
 
@@ -228,23 +228,23 @@ class NewsSummarizer:
         return "Ghi nhận vụ việc gây thiệt hại và bức xúc trong dư luận."
 
     def _render_investigative_markdown(self, buckets):
-        summary = ["### 📋 TÓM TẮT CHUYÊN SÂU (PHÓNG SỰ)\n"]
-        if buckets['headline']: summary.append(f"**📰 TIÊU ĐIỂM:** {buckets['headline']}\n")
+        summary = ["[TÓM TẮT] TÓM TẮT CHUYÊN SÂU (PHÓNG SỰ)\n"]
+        if buckets['headline']: summary.append(f"**[TIÊU ĐIỂM] TIÊU ĐIỂM:** {buckets['headline']}\n")
         
         if buckets['damage']:
-            summary.append("**👤 Nạn nhân & Thiệt hại:**")
+            summary.append("**[NẠN NHÂN] Nạn nhân & Thiệt hại:**")
             summary.extend([f"* {item}" for item in buckets['damage']])
             summary.append("")
         if buckets['method']:
-            summary.append("**🕵️ Diễn biến & Nhận định:**")
+            summary.append("**[DIỄN BIẾN] Diễn biến & Nhận định:**")
             summary.extend([f"* {item}" for item in buckets['method']])
             summary.append("")
         if buckets['consequence']:
-            summary.append("**⚠️ Hậu quả & Hệ lụy:**")
+            summary.append("**[HẬU QUẢ] Hậu quả & Hệ lụy:**")
             summary.extend([f"* {item}" for item in buckets['consequence']])
             summary.append("")
         if buckets['legal']:
-            summary.append("**⚖️ Góc độ pháp lý & Xử lý:**")
+            summary.append("**[PHÁP LÝ] Góc độ pháp lý & Xử lý:**")
             summary.extend([f"* {item}" for item in buckets['legal']])
             
         return "\n".join(summary)
