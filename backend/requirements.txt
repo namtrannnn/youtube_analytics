@@ -3,7 +3,7 @@ uvicorn
 celery
 redis
 python-dotenv
-google-generativeai
+google-genai
 youtube-comment-downloader
 youtube-transcript-api
 pandas

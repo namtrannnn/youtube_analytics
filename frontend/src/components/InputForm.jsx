@@ -5,13 +5,13 @@ import { motion } from 'framer-motion';
 export default function InputForm({ onSubmit }) {
   const [url, setUrl] = useState('');
   
-  // Mặc định là 500 theo ý bạn
+  // Mặc định là 500
   const [count, setCount] = useState(500); 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
   // Cấu hình giới hạn an toàn
-  const MIN_COMMENTS = 100; // Thấp nhất cho phép (để AI có cái mà phân tích)
+  const MIN_COMMENTS = 100; // Thấp nhất cho phép 
   const MAX_COMMENTS = 5000; // Giới hạn trần để không sập server
   
   // Các mốc chọn nhanh
@@ -80,7 +80,7 @@ export default function InputForm({ onSubmit }) {
                 <input
                   type="text"
                   required
-                  placeholder="Dán link video (Ví dụ: https://youtu.be/...)"
+                  placeholder="Dán link video youtube (https://youtu.be/...)"
                   className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all duration-300 font-medium text-slate-700"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
@@ -107,6 +107,7 @@ export default function InputForm({ onSubmit }) {
                   type="number"
                   min={MIN_COMMENTS}
                   max={MAX_COMMENTS}
+                  step={10}
                   value={count}
                   onChange={(e) => setCount(Number(e.target.value))}
                   className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all duration-300 font-bold text-slate-700 text-lg"

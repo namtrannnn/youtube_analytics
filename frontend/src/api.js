@@ -32,7 +32,7 @@ export const api = {
 
   chatWithData: async (taskId, question) => {
     const response = await axios.post(
-      `${API_BASE_URL}/chat`,
+      `${API_BASE_URL}/api/chat`,
       {
         ma_tac_vu: taskId,
         cau_hoi: question,
@@ -111,4 +111,23 @@ export const api = {
     );
     return response.data;
   },
+
+  // Lấy danh sách lịch sử
+  getHistory: async () => {
+    const response = await axios.get(`${API_BASE_URL}/api/history`, getAuthHeader());
+    return response.data;
+  },
+
+  // Lấy chi tiết một lịch sử để hiện Dashboard
+  getHistoryDetail: async (taskId) => {
+    const response = await axios.get(`${API_BASE_URL}/api/history/${taskId}`, getAuthHeader());
+    return response.data;
+  },
+
+  // Xóa một lịch sử phân tích
+  deleteHistory: async (taskId) => {
+    const response = await axios.delete(`${API_BASE_URL}/api/history/${taskId}`, getAuthHeader());
+    return response.data;
+  },
+
 };
