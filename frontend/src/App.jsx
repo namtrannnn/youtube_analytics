@@ -9,6 +9,7 @@ import AuthForm from './components/AuthForm';
 import ForgotPassword from './components/ForgotPassword';
 import HistoryPage from './components/HistoryPage';
 import DashboardWrapper from './components/DashboardWrapper';
+import ReportPage from './components/ReportPage';
 
 // --- IMPORT API ---
 import { api } from './api';
@@ -89,6 +90,7 @@ function App() {
               </div>
             )
           } />
+          <Route path="/history/:taskId" element={<ReportPage />} />
 
           {/* Trang Báo cáo Dashboard */}
           <Route path="/report/:taskId" element={<DashboardWrapper />} />

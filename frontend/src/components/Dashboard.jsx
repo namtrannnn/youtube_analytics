@@ -7,7 +7,7 @@ import VideoSummaryPanel from './VideoSummary';
 import CommentAnalysis from './CommentAnalysis';
 import ChatWindow from './ChatWindow'; 
 
-export default function Dashboard({ data, taskId }) {
+export default function Dashboard({ data, taskId, initialChat }) {
   const [activeTab, setActiveTab] = useState('comments');
 
   // Trích xuất dữ liệu cơ bản cho giao diện chung
@@ -76,7 +76,7 @@ export default function Dashboard({ data, taskId }) {
         <div className="lg:col-span-4">
           <div className="sticky top-6 h-[calc(100vh-40px)] flex flex-col">
              <div className="flex-1 min-h-0 bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-                <ChatWindow taskId={taskId} />
+                <ChatWindow taskId={taskId} initialChat={initialChat} />
              </div>
              <div className="mt-4 p-5 bg-blue-50 text-blue-800 rounded-2xl text-sm border border-blue-100 shadow-sm">
                 <strong className="flex items-center gap-2">💡 Gợi ý câu hỏi:</strong>

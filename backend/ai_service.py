@@ -1,45 +1,49 @@
-import google.generativeai as genai
 import os
-import pandas as pd
-from itertools import islice
-from youtube_comment_downloader import *
+import json
+from google import genai # Import thư viện mới
+from dotenv import load_dotenv
 
-# Cấu hình Gemini
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+load_dotenv()
 
-def cao_binh_luan(duong_dan, so_luong=100):
-    cong_cu_tai = YoutubeCommentDownloader()
-    danh_sach_binh_luan = []
-    # Logic lấy comment (giả lập hoặc dùng thư viện)
-    trinh_tao = cong_cu_tai.get_comments_from_url(duong_dan, sort_by=SORT_BY_POPULAR)
-    for binh_luan in islice(trinh_tao, so_luong):
-        danh_sach_binh_luan.append({
-            "noi_dung": binh_luan['text'],
-            "tac_gia": binh_luan['author'],
-            "thoi_gian": binh_luan['time'], # Cần xử lý chuẩn hóa time để vẽ biểu đồ
-            "so_luot_thich": binh_luan.get('votes', 0)
-        })
-    return danh_sach_binh_luan
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("Chưa cấu hình GEMINI_API_KEY trong file .env")
 
-def phan_tich_bang_gemini(du_lieu_binh_luan):
-    mo_hinh = genai.GenerativeModel('gemini-1.5-flash') # Dùng bản Flash cho nhanh và rẻ
-    
-    # Gom text lại để phân tích (lưu ý giới hạn token, nếu quá nhiều phải chia batch)
-    toan_bo_van_ban = "\n".join([binh_luan['noi_dung'] for binh_luan in du_lieu_binh_luan])
-    
-    cau_lenh = f"""
-    Phân tích danh sách bình luận YouTube dưới đây. Trả về JSON với định dạng:
-    {{
-        "sentiment_summary": {{"positive": 0, "neutral": 0, "negative": 0}},
-        "top_emojis": ["emoji1", "emoji2"],
-        "video_summary": "Tóm tắt nội dung dựa trên bình luận",
-        "key_themes": ["chủ đề 1", "chủ đề 2"]
-    }}
-    
-    Bình luận:
-    {toan_bo_van_ban[:30000]} 
-    """
-    # Lưu ý: Cắt chuỗi để tránh lỗi token nếu quá dài
-    
-    phan_hoi = mo_hinh.generate_content(cau_lenh)
-    return phan_hoi.text # Cần xử lý chuỗi trả về thành JSON object
+# Khởi tạo Client mới theo chuẩn của google-genai
+client = genai.Client(api_key=GEMINI_API_KEY)
+
+def get_chatbot_response(cau_hoi: str, du_lieu_phan_tich: dict) -> str:
+    """Hàm gửi tin nhắn và dữ liệu ngữ cảnh tới Gemini"""
+    try:
+        # Chuyển đổi dữ liệu phân tích thành chuỗi Text
+        data_str = json.dumps(du_lieu_phan_tich, ensure_ascii=False, indent=2)
+        
+        prompt = f"""
+        Bạn là một trợ lý AI thông minh chuyên phân tích dữ liệu bình luận YouTube.
+        Dưới đây là kết quả phân tích bình luận và bản tóm tắt của một video do hệ thống thu thập và xử lý:
+        
+        <du_lieu_phan_tich>
+        {data_str}
+        </du_lieu_phan_tich>
+        
+        Nhiệm vụ: Dựa HOÀN TOÀN vào phần <du_lieu_phan_tich> ở trên, hãy trả lời ngắn gọn câu hỏi của người dùng.
+        
+        Quy tắc bắt buộc:
+        - Chỉ sử dụng thông tin có trong dữ liệu. Không tự bịa thêm thông tin bên ngoài.
+        - Trả lời ngắn gọn các thông tin có trong dữ liệu.
+        - Trình bày câu trả lời rõ ràng, dễ đọc (có thể dùng bullet point, in đậm).
+        - Nếu câu hỏi hỏi về thông tin không có trong dữ liệu, hãy trả lời: "Tôi không tìm thấy thông tin này trong dữ liệu phân tích hiện tại."
+        
+        Câu hỏi của người dùng: "{cau_hoi}"
+        """
+        
+        # Dùng model gemini-2.5-flash (hoặc gemini-2.0-flash) với cú pháp mới
+        response = client.models.generate_content(
+            model='gemini-2.5-flash', 
+            contents=prompt
+        )
+        return response.text
+        
+    except Exception as e:
+        print(f"Error calling Gemini: {e}")
+        return "Xin lỗi, chatbot hiện tại đang gặp sự cố khi xử lý dữ liệu. Vui lòng thử lại sau."

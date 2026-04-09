@@ -1,21 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import { Send, Bot, Loader2 } from 'lucide-react';
+import { api } from '../api';
 import ReactMarkdown from 'react-markdown';
 
-export default function ChatWindow({ taskId }) {
-  const [messages, setMessages] = useState([
-    { role: 'bot', content: 'Chào bạn! Tôi đã học xong dữ liệu bình luận của video này. Bạn muốn hỏi gì?' }
-  ]);
+export default function ChatWindow({ taskId, initialChat = [] }) {
+  
+  // Khởi tạo State: Nếu có lịch sử cũ thì dùng nó, nếu không thì dùng câu chào mặc định
+  const [messages, setMessages] = useState(() => {
+    if (initialChat && initialChat.length > 0) {
+      return initialChat;
+    }
+    return [
+      { role: 'bot', content: 'Chào bạn! Tôi đã học xong dữ liệu của video này. Bạn muốn hỏi gì?' }
+    ];
+  });
+
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const messagesEndRef = useRef(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // const scrollToBottom = () => {
+  //   messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // };
 
-  useEffect(scrollToBottom, [messages]);
+  // useEffect(scrollToBottom, [messages]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -27,14 +35,11 @@ export default function ChatWindow({ taskId }) {
     setIsThinking(true);
 
     try {
-      // Gọi API Chatbot
-      const res = await axios.post('http://localhost:8000/api/chat', {
-        task_id: taskId,
-        question: userMsg
-      });
+      const botAnswer = await api.chatWithData(taskId, userMsg);
       
-      setMessages(prev => [...prev, { role: 'bot', content: res.data.answer }]);
+      setMessages(prev => [...prev, { role: 'bot', content: botAnswer }]);
     } catch (error) {
+      console.error("Lỗi Chatbot:", error);
       setMessages(prev => [...prev, { role: 'bot', content: 'Xin lỗi, tôi gặp lỗi khi kết nối server.' }]);
     } finally {
       setIsThinking(false);
@@ -45,7 +50,7 @@ export default function ChatWindow({ taskId }) {
     <div className="flex flex-col h-[600px] bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
       <div className="bg-slate-50 p-4 border-b border-slate-200 flex items-center gap-2">
         <Bot className="w-5 h-5 text-blue-600" />
-        <span className="font-semibold text-slate-700">Trợ lý AI (Hỏi đáp trên dữ liệu bình luận)</span>
+        <span className="font-semibold text-slate-700">Trợ lý AI (Hỏi đáp trên dữ liệu thu nhập)</span>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

@@ -1,6 +1,11 @@
 from datetime import datetime, timedelta
 from jose import jwt
 import bcrypt
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models import NguoiDung
 
 # Cấu hình chuỗi bí mật (Nên để trong file .env)
 SECRET_KEY = "afafanyuyongyiafa"
@@ -36,3 +41,23 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
+
+def get_optional_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """Lấy thông tin User nếu có gửi Token, nếu không gửi (Khách) thì trả về None"""
+    if not token:
+        return None
+    try:
+        # Giải mã token
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # Lấy ID từ trường 'sub' của token.
+        user_id_str = payload.get("sub") 
+        if user_id_str is None:
+            return None
+            
+        # Truy vấn Database tìm user
+        user = db.query(NguoiDung).filter(NguoiDung.MaND == int(user_id_str)).first()
+        return user
+    except Exception:
+        return None

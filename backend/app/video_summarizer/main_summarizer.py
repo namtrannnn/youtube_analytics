@@ -183,6 +183,9 @@ class SmartVideoSummarizer:
                 sentences = split_sentences_with_timestamps(sentences, video_type=video_type)
             update_progress(20, f"Đang tóm tắt nội dung ({video_type.upper()})...")
 
+            # TRÍCH XUẤT TOÀN BỘ NỘI DUNG PHỤ ĐỀ GỐC SAU KHI ĐÃ ĐƯỢC XỬ LÝ/DỊCH
+            full_transcript_text = " ".join([s['text'] for s in sentences])
+
             # =================================================================
             # 2. XỬ LÝ TÓM TẮT DỰA TRÊN LOẠI VIDEO VÀ XUẤT KẾT QUẢ
             # =================================================================
@@ -226,7 +229,8 @@ class SmartVideoSummarizer:
                 return {
                     "type": "TIMELINE",
                     "category": video_type.upper(),
-                    "timeline": frontend_timeline
+                    "timeline": frontend_timeline,
+                    "original_transcript": full_transcript_text
                 }
 
         except Exception as e:
