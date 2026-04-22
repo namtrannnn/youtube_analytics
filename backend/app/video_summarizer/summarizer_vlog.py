@@ -27,6 +27,12 @@ class VlogSummarizer:
         # 1. Làm sạch câu
         clean_sentences = []
         for s in sentences_chunk:
+            # lọc bỏ các câu đối thoại trước
+            text_no_dialogue = self._remove_dialogue(s['text'])
+            if not text_no_dialogue:
+                continue
+
+            # Chạy qua bộ dọn rác thông thường
             text = self._clean_noise(s['text'])
             if not self._is_junk_sentence(text) and len(text.split()) >= 5:
                 clean_sentences.append(text)
@@ -53,6 +59,27 @@ class VlogSummarizer:
             count += 1
 
         return summary
+    
+    def _remove_dialogue(self, text):
+        """Lọc bỏ các đoạn thoại (có dấu ':') nhưng giữ nguyên timestamp"""
+        if not isinstance(text, str) or not text.strip():
+            return text
+            
+        # Tách thành các câu nhỏ dựa trên dấu câu (nếu transcript có dấu .!?)
+        cau_nho = re.split(r'(?<=[.!?])\s+', text)
+        cau_da_loc = []
+        
+        for cau in cau_nho:
+            # Bỏ qua câu chứa ':' (không kẹp giữa 2 con số) hoặc câu bắt đầu bằng ':'
+            if not re.search(r'(?<!\d):(?!\d)', cau) and not cau.strip().startswith(':'):
+                cau_da_loc.append(cau)
+                
+        text_da_loc = ' '.join(cau_da_loc).strip()
+        
+        # Dọn dẹp dấu ':' lơ lửng ở đầu câu nếu còn sót lại do lỗi của bộ tự động dịch Youtube
+        text_da_loc = re.sub(r'^\s*:\s*', '', text_da_loc)
+        
+        return text_da_loc
 
     def _clean_noise(self, text):
         """Dọn rác trong text"""
