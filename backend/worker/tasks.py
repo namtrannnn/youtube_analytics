@@ -9,8 +9,15 @@ from datetime import datetime, timedelta
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler
 import re
+
 from app.ml_models.custom_algorithms import KMeansTuyChinh, HoiQuyLogisticTuyChinh
-from app.ml_models.text_processing import phan_tich_cam_xuc_theo_luat, TU_LOAI_BO_TIENG_VIET
+# [CẬP NHẬT]: Import thêm lay_cam_xuc_soft, an_danh_ten_rieng_cho_bert_an_toan và hieu_chinh_cam_xuc_theo_luat
+from app.ml_models.text_processing import (
+    TU_LOAI_BO_TIENG_VIET, 
+    lay_cam_xuc_soft, 
+    an_danh_ten_rieng_cho_bert_an_toan, 
+    hieu_chinh_cam_xuc_theo_luat
+)
 from app.ml_models.youtube_utils import lay_binh_luan
 from app.video_summarizer.main_summarizer import SmartVideoSummarizer
 
@@ -36,7 +43,6 @@ def lay_vector_bert(danh_sach_van_ban):
     tai_mo_hinh()
     cac_vector = []
 
-    #kiểm tra Cuda để tăng tốc (nếu server có GPU)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     mo_hinh.to(device)
     mo_hinh.eval()
@@ -48,8 +54,18 @@ def lay_vector_bert(danh_sach_van_ban):
             dau_vao = bo_tach_tu(lo_van_ban, return_tensors="pt", padding=True, truncation=True, max_length=128)
             dau_vao = {k: v.to(device) for k, v in dau_vao.items()}
             dau_ra = mo_hinh(**dau_vao)
-            vector_cls = dau_ra.last_hidden_state[:, 0, :].cpu().numpy()
-            cac_vector.extend(vector_cls)
+            
+            # [CẬP NHẬT BƯỚC 3]: Áp dụng Mean Pooling thay vì chỉ lấy CLS token
+            token_embeddings = dau_ra.last_hidden_state 
+            attention_mask = dau_vao['attention_mask'].unsqueeze(-1).expand(token_embeddings.size()).float()
+            
+            sum_embeddings = torch.sum(token_embeddings * attention_mask, 1)
+            sum_mask = torch.clamp(attention_mask.sum(1), min=1e-9)
+            mean_pooled = sum_embeddings / sum_mask
+            
+            vector_batch = mean_pooled.cpu().numpy()
+            cac_vector.extend(vector_batch)
+            
     return np.array(cac_vector)
 
 def tao_du_lieu_dam_may_tu(danh_sach_van_ban):
@@ -87,7 +103,6 @@ def tao_du_lieu_bieu_do_phan_tan(df, toa_do_2d):
     if len(df) < 2:
         return []
 
-    # Chỉ cần chuẩn hóa tọa độ 2D đã được PCA xử lý từ trước
     bo_chuan_hoa = MinMaxScaler(feature_range=(0, 100))
     toa_do_da_chuan_hoa = bo_chuan_hoa.fit_transform(toa_do_2d)
 
@@ -169,43 +184,9 @@ def phan_tich_chuoi_thoi_gian(df):
     except Exception as e:
         print(f"Lỗi Chuỗi Thời Gian: {e}")
         return []
-    
-def an_danh_ten_rieng_cho_bert_an_toan(van_ban):
-    """
-    Tìm và thay thế các từ viết hoa chữ cái đầu (tên riêng) thành 'ai_đó'
-    giúp BERT không bị thành kiến (bias) với các tên cụ thể.
-    """
-    if not isinstance(van_ban, str): 
-        return ""
-    
-    # Regex tìm các từ viết hoa chữ cái đầu tiếng Việt
-    pattern_hoa = r'\b[A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪỬỮỰỲỴÝỶỸ][a-zàáâãèéêìíòóôõùúăđĩũơưăạảấầẩẫậắằẳẵặẹẻẽềềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]*\b'
-    
-    # Thay tên riêng bằng token 'ai_đó'
-    cau_da_che = re.sub(pattern_hoa, 'ai_đó', van_ban)
-    
-    # Gom các chữ 'ai_đó' đứng cạnh nhau thành 1 chữ duy nhất cho tự nhiên
-    cau_hoan_thien = re.sub(r'(ai_đó\s*)+', 'ai_đó ', cau_da_che)
-    
-    return cau_hoan_thien.strip()
 
-def hieu_chinh_cam_xuc_theo_luat(cau_goc, nhan_may_doan):
-    if not isinstance(cau_goc, str): return nhan_may_doan
-    cau_thuong = cau_goc.lower()
-    
-    cac_tu = cau_thuong.split()
-    if not cac_tu: return nhan_may_doan
-    if cac_tu[-1] == 'ạ': return "Positive"
-    
-    kinh_ngu = ['dạ', 'vâng', 'thưa', 'xin mời', 'mời']
-    if any(tu in cac_tu for tu in kinh_ngu): 
-        return "Positive"
-
-    cum_tu_tich_cuc_manh = ["không thua kém", "không kém", 'chúc', 'cảm ơn', 'cám ơn', 'hi vọng']
-    if any(cum in cau_thuong for cum in cum_tu_tich_cuc_manh):
-        return "Positive"
-        
-    return nhan_may_doan
+# ĐÃ XÓA hàm an_danh_ten_rieng_cho_bert_an_toan() và hieu_chinh_cam_xuc_theo_luat() ở đây 
+# vì đã được import từ text_processing.py để tránh trùng lặp code.
 
 # ===================================================================================
 # CELERY TASK CHÍNH
@@ -214,12 +195,10 @@ def hieu_chinh_cam_xuc_theo_luat(cau_goc, nhan_may_doan):
 def analyze_video_task(self, url_youtube, so_luong_binh_luan):
     tai_mo_hinh()
     
-    # Hàm callback để cập nhật % tiến trình từ các module bên ngoài
     def report_progress(percent, message):
         self.update_state(state='PROGRESS', meta={'progress': percent, 'status': message})
-    # ---------------------------------------------------------
-    # BƯỚC 1: TRÍCH XUẤT VÀ TÓM TẮT NỘI DUNG VIDEO
-    # ---------------------------------------------------------
+
+    # TRÍCH XUẤT VÀ TÓM TẮT NỘI DUNG VIDEO
     self.update_state(state='PROGRESS', meta={'progress': 10, 'status': 'Đang tải phụ đề và tóm tắt nội dung video...'})
     
     try:
@@ -233,18 +212,15 @@ def analyze_video_task(self, url_youtube, so_luong_binh_luan):
             "content": "Có lỗi xảy ra trong quá trình trích xuất tóm tắt video."
         }
     
-    # ---------------------------------------------------------
-    # BƯỚC 2: CRAWL BÌNH LUẬN YOUTUBE
-    # ---------------------------------------------------------
+    # CRAWL BÌNH LUẬN YOUTUBE
     self.update_state(state='PROGRESS', meta={'progress': 30, 'status': 'Đang quét thông tin kênh và bình luận...'})
     
     df = lay_binh_luan(url_youtube, gioi_han=so_luong_binh_luan)
     if df.empty:
-        # Nếu không có bình luận, vẫn trả về tóm tắt video và các mảng rỗng
          return {
             "video_url": url_youtube,
             "total_comments": 0,
-            "video_summary": video_summary_data, # Vẫn giữ lại bản tóm tắt
+            "video_summary": video_summary_data,
             "time_series": [],
             "sentiment_chart": [],
             "emoji_stats": [],
@@ -252,22 +228,21 @@ def analyze_video_task(self, url_youtube, so_luong_binh_luan):
              "all_comments": [],
             "top_users": [],
              "scatter_clusters": [],
-            "warning": "Không tìm thấy bình luận nào, nhưng tóm tắt video đã được tạo thành công." # Gửi kèm cảnh báo cho frontend
+            "warning": "Không tìm thấy bình luận nào, nhưng tóm tắt video đã được tạo thành công." 
         }
     
     self.update_state(state='PROGRESS', meta={'progress': 50, 'status': f'Đã tải {len(df)} bình luận. Đang phân tích...'})
 
-    # ---------------------------------------------------------
-    # BƯỚC 3: VECTOR HÓA VÀ ML CUSTOM
-    # ---------------------------------------------------------
+   
+    # VECTOR HÓA VÀ ML CUSTOM
     try:
+        # Lấy nhúng Vector với hàm ẩn danh tên riêng
         danh_sach_cho_bert = [an_danh_ten_rieng_cho_bert_an_toan(txt) for txt in df['ban_goc'].tolist()]
-        
         X_goc = lay_vector_bert(danh_sach_cho_bert)
-        # Giảm từ 768 chiều của BERT xuống 2 chiều
+        
+        # Giảm chiều PCA cho Biểu đồ Scatter 2D
         pca = PCA(n_components=2)
         X_pca_2d = pca.fit_transform(X_goc)
-
     except Exception as e:
         return {"error": f"Lỗi xử lý ngôn ngữ tự nhiên: {str(e)}"}
     
@@ -277,32 +252,25 @@ def analyze_video_task(self, url_youtube, so_luong_binh_luan):
     kmeans = KMeansTuyChinh(so_cum=3, so_vong_lap_toi_da=100)
     df['cum'] = kmeans.huan_luyen_va_du_doan(X_pca_2d).tolist()
 
-    # Chạy Gán Nhãn Bằng Luật + Weak Supervision Logistic Regression
+    # Áp dụng Soft Labels thay vì Weak Supervision nhãn cứng
+    y_soft_list = []
     nhan_rule_based_list = []
-    is_confident_list = []
+    cac_lop = np.array(['Negative', 'Neutral', 'Positive'])
 
     for txt in df['ban_goc']:
-        nhan, is_conf = phan_tich_cam_xuc_theo_luat(txt, return_confidence=True)
-        nhan_rule_based_list.append(nhan)
-        is_confident_list.append(is_conf)
+        soft_prob = lay_cam_xuc_soft(txt)
+        y_soft_list.append(soft_prob)
+        nhan_rule_based_list.append(cac_lop[np.argmax(soft_prob)])
         
     df['nhan_rule_based'] = nhan_rule_based_list
-    df['is_confident'] = is_confident_list
+    y_train_soft = np.array(y_soft_list)
 
-    # Lọc mẫu tin cậy để train
-    chi_so_tin_cay = df[df['is_confident'] == True].index.tolist()
+    # Huấn luyện LR Custom trực tiếp trên toàn bộ Soft Labels
+    mo_hinh_lr = HoiQuyLogisticTuyChinh(toc_do_hoc=0.01, so_vong_lap=3000, lamda=5.0, batch_size=64, patience=50)
+    mo_hinh_lr.huan_luyen(X_goc, y_train_soft)
     
-    if len(chi_so_tin_cay) > 0:
-        X_train_weak = X_goc[chi_so_tin_cay]
-        y_train_weak = df.loc[chi_so_tin_cay, 'nhan_rule_based'].values
-        
-        mo_hinh_lr = HoiQuyLogisticTuyChinh(toc_do_hoc=0.1, so_vong_lap=3000, lamda=1.0)
-        mo_hinh_lr.huan_luyen(X_train_weak, y_train_weak)
-        
-        df['cam_xuc_du_doan'] = mo_hinh_lr.du_doan(X_goc).tolist()
-    else:
-        # Nếu không có câu nào đạt tin cậy cao, dùng nhãn bộ luật
-        df['cam_xuc_du_doan'] = df['nhan_rule_based']
+    # Dự đoán bằng mô hình LR đã học
+    df['cam_xuc_du_doan'] = mo_hinh_lr.du_doan(X_goc).tolist()
 
     # Lớp khiên cuối cùng: IF-ELSE vớt những câu máy dự đoán sai
     df['cam_xuc_du_doan'] = df.apply(
@@ -312,9 +280,7 @@ def analyze_video_task(self, url_youtube, so_luong_binh_luan):
 
     self.update_state(state='PROGRESS', meta={'progress': 90, 'status': 'Đang tổng hợp báo cáo...'})
 
-    # ---------------------------------------------------------
-    # BƯỚC 4: TỔNG HỢP TOÀN BỘ KẾT QUẢ ĐỂ TRẢ VỀ FRONTEND
-    # ---------------------------------------------------------
+    # TỔNG HỢP TOÀN BỘ KẾT QUẢ ĐỂ TRẢ VỀ FRONTEND
     so_luong_cam_xuc = df['cam_xuc_du_doan'].value_counts().to_dict()
     du_lieu_bieu_do_cam_xuc = [
         {"name": "Tích cực", "value": so_luong_cam_xuc.get("Positive", 0), "color": "#22c55e"},
@@ -329,6 +295,11 @@ def analyze_video_task(self, url_youtube, so_luong_binh_luan):
     du_lieu_emoji = [{"emoji": e[0], "count": e[1]} for e in emoji_hang_dau]
 
     df['diem_cam_xuc'] = df['cam_xuc_du_doan'].map({"Positive": 1.0, "Negative": -1.0, "Neutral": 0.0})
+
+    # Giả định cột 'da_lam_sach' chưa được tạo trong task mới (nên ta sẽ chạy tạm nếu nó vắng mặt)
+    if 'da_lam_sach' not in df.columns:
+        # Nếu hàm lay_binh_luan chưa sinh ra cột này, sử dụng hàm an_danh để chạy wordcloud
+        df['da_lam_sach'] = df['ban_goc'].apply(an_danh_ten_rieng_cho_bert_an_toan)
 
     du_lieu_dam_may_tu = tao_du_lieu_dam_may_tu(df['da_lam_sach'].tolist())
     du_lieu_toan_bo_binh_luan = df[['id', 'tac_gia', 'ban_goc', 'cam_xuc_du_doan', 'so_like', 'cum', 'diem_cam_xuc']].to_dict(orient='records')
